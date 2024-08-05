@@ -1,4 +1,4 @@
-from music21 import chord, pitch, key, interval
+from music21 import chord, pitch, key, interval, roman
 
 def get_chord_name(note_set, key_name=None):
     notes = []
@@ -10,8 +10,8 @@ def get_chord_name(note_set, key_name=None):
                 notes.append(n)
             else:
                 raise ValueError(f"Invalid note format: {n}")
-        except Exception as e:
-            return f"Error processing note '{n}': {e}", None
+        except Exception:
+            return "Invalid note format", None
 
     if not notes:
         return "No valid notes provided", None
@@ -38,10 +38,19 @@ def get_chord_relationship(chord_obj, key_name):
     if not root:
         return "Cannot determine root for the chord."
     
-    # computer interval between root and the tonic of key
+    # compute interval between root and the tonic of key
     try:
         tonic = key_obj.tonic
         intvl = interval.Interval(noteStart=tonic, noteEnd=root)
-        return f"This chord is a {intvl.niceName} away from tonic ({tonic.name})"
+        
+        # make sure to use major key's roman numeral due to bug calculating a major or minor key's iii and III chord
+        major_key_obj = key.Key(tonic.name)
+    
+        # get the degree of the chord relative to the key
+        roman_numeral = roman.romanNumeralFromChord(chord_obj, major_key_obj)
+        
+        key_type = "minor" if key_obj.mode == "minor" else "major"
+        
+        return f"The key is {key_name} {key_type}\nThis chord is a(n) {intvl.niceName} from the tonic ({tonic.name})\nThis chord is the {roman_numeral.figure} chord in the key of {key_name}"
     except Exception as e:
         return f"Error calculating chord relationship: {e}"
