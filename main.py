@@ -1,7 +1,9 @@
 import tkinter as tk
+import re
 from tkinter import ttk, filedialog
 from backend.chord_extractor import get_score, label_consecutive_parts, extract_chords
 from backend.find_chord import get_chord_name
+from assets.virtual_keyboard import VirtualKeyboard
 
 class MusicAnalyzerApp(tk.Tk):
     def __init__(self):
@@ -125,7 +127,7 @@ class MusicAnalyzerApp(tk.Tk):
     def open_chord_finder(self):
         chord_finder = tk.Toplevel(self)
         chord_finder.title("Chord Finder")
-        chord_finder.geometry("400x400")
+        chord_finder.geometry("1350x600")
 
         # Notes input field
         self.notes_label = ttk.Label(chord_finder, text="Enter Notes (comma-separated):")
@@ -142,16 +144,24 @@ class MusicAnalyzerApp(tk.Tk):
         self.key_entry.bind("<KeyRelease>", self.update_chord_name)
 
         # Display chord name
-        self.chord_name_label = ttk.Label(chord_finder, text="Chord Name:")
+        self.chord_name_label = ttk.Label(chord_finder, text="Chord Name:", font=("Helvetica", 22))
         self.chord_name_label.pack(pady=10)
-        self.chord_name_display = ttk.Label(chord_finder, text="")
+        self.chord_name_display = ttk.Label(chord_finder, text="", font=("Helvetica", 18))
         self.chord_name_display.pack(pady=10)
 
         # Display chord relationship
-        self.chord_relation_label = ttk.Label(chord_finder, text="Chord Relationship:")
+        self.chord_relation_label = ttk.Label(chord_finder, text="Chord Relationship:", font=("Helvetica", 22))
         self.chord_relation_label.pack(pady=10)
-        self.chord_relation_display = ttk.Label(chord_finder, text="")
+        self.chord_relation_display = ttk.Label(chord_finder, text="", font=("Helvetica", 18))
         self.chord_relation_display.pack(pady=10)
+        
+        # Virtual keyboard
+        self.virtual_keyboard = VirtualKeyboard(chord_finder)
+        self.virtual_keyboard.pack(pady=20)
+
+        # Info button
+        self.info_button = ttk.Button(chord_finder, text="Info", command=self.show_info)
+        self.info_button.pack(pady=10)
 
     def show_info(self):
         info_window = tk.Toplevel(self)
@@ -166,11 +176,12 @@ class MusicAnalyzerApp(tk.Tk):
         content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         info_text = ("Notes about the Chord Finder\n\n"
-                    "Notes should be enetred as a comma-seperated list (like a, c#, e)\n\n"
-                    "Using '-' or 'b' denotes flat while '#' denotes sharp. Double flats and double sharps are supported.\n\n"
-                    "For more granularity, enter the number of the note you want at the end of the note to denote the exact note (like a4 or b#3)\n"
-                    "This is useful for situation like wanting a minor second instead of a seventh interval\n\n"
-                    "scales can also be entered here too\n"
+                    "Notes should be entered as a comma-seperated list (like a1, c#2, e2)\n\n"
+                    "Using '-' or 'b' denotes flat while '#' denotes sharp.\n" 
+                    "Sharping/flating notes multiple times are supported, but it won't appear on the keyboard.\n\n"
+                    "For more granularity, end the note with a number to denote the exact note (like A#4 instead of A#)\n" 
+                    "If you do not do this, all notes are all assumed to be in the 4th octave\n\n"
+                    "Scales can also be entered here too\n"
                     "Just note that the tool does not distinguish between major and mino scales too well")
 
         info_label = ttk.Label(content_frame, text=info_text, wraplength=400, justify=tk.LEFT)
@@ -184,13 +195,30 @@ class MusicAnalyzerApp(tk.Tk):
     def update_chord_name(self, event=None):
         notes_input = self.notes_entry.get().strip()
         key_input = self.key_entry.get().strip()
-        note_set = set(notes_input.split(',')) if notes_input else set()
+        
+        notes_list = [note.strip() for note in notes_input.split(',') if note.strip()]
+        note_set = set(notes_list)
         
         chord_name, chord_relation = get_chord_name(note_set, key_input)
         
         self.chord_name_display.config(text=chord_name)
-        self.chord_relation_display.config(text=chord_relation if chord_relation else "No key and/or chord provided")
-
+        if chord_relation:
+            relation_text = chord_relation
+        else:
+            relation_text = "No key and/or chord provided"
+        self.chord_relation_display.config(text=relation_text)
+        
+        # reset key colors before highlighting new ones
+        self.virtual_keyboard.reset_all_keys()       
+        
+        # highlight the new keys
+        for note in note_set:
+            upperCaseNote = note = re.sub(r'^([a-z])', lambda x: x.group(1).upper(), note) # music21 only recognizes uppercase notes
+            if not re.search(r'\d$', upperCaseNote):
+                upperCaseNote += '4'  # music21 defaults to 4th octave if no exact note specified
+                
+            self.virtual_keyboard.highlight_key(upperCaseNote)
+        
 if __name__ == "__main__":
     app = MusicAnalyzerApp()
     app.mainloop()
