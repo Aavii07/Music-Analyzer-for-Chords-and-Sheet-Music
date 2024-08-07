@@ -1,0 +1,14 @@
+README.md
+setup.py
+backend/__init__.py
+backend/chord_extractor.py
+backend/config.py
+backend/find_chord.py
+frontend/__init__.py
+frontend/music_analyzer.py
+frontend/assets/__init__.py
+frontend/assets/virtual_keyboard.py
+music_analyzer.egg-info/PKG-INFO
+music_analyzer.egg-info/SOURCES.txt
+music_analyzer.egg-info/dependency_links.txt
+music_analyzer.egg-info/top_level.txt

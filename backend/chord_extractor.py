@@ -1,13 +1,13 @@
-import music21
+from music21 import converter, note, chord, pitch, analysis
 
 def get_score(score_path):
     try:
-        return music21.converter.parse(score_path).parts
+        return converter.parse(score_path).parts
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
 
-def extract_chords(parts):
+def extract_chords(parts, simplify_chords=True):
     chords = []
 
     for part in parts:
@@ -15,14 +15,33 @@ def extract_chords(parts):
             notes_and_chords = measure.flatten().notes
             
             for element in notes_and_chords:
-                if isinstance(element, music21.note.Rest):
+                if isinstance(element, note.Rest):
                     continue
                 
-                if isinstance(element, music21.chord.Chord):
+                if isinstance(element, chord.Chord):
                     measure_number = element.measureNumber
                     offset = element.offset
-                    chord_name = element.pitchedCommonName
-                    notes = ", ".join(p.name for p in element.pitches)
+                    
+                    if simplify_chords:
+                        try:
+                            # extract pitches and create chord
+                            pitches = [p.nameWithOctave for p in element.pitches]
+                            pitch_objects = [pitch.Pitch(p) for p in pitches]
+
+                            # simplify the chord
+                            es = analysis.enharmonics.EnharmonicSimplifier(pitch_objects)
+                            pitch_objects = es.bestPitches()
+
+                            # create chord object
+                            c = chord.Chord(pitch_objects)
+                            chord_name = c.pitchedCommonName
+                        except Exception as e:
+                            #print(f"Error simplifying chord: {e}")
+                            chord_name = element.pitchedCommonName + " (*Simplifier Failed*)"
+                    else:
+                        chord_name = element.pitchedCommonName  # get chord name directly
+                    
+                    notes = ", ".join(p.nameWithOctave for p in element.pitches)
                     
                     chords.append((part, measure_number, offset, chord_name, notes))
                     
