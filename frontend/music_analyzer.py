@@ -139,9 +139,6 @@ class MusicAnalyzer(tk.Tk):
             self.tree.insert("", "end", values=(part_name, measure_number, offset, chord_name, notes), tags=("padding"))
 
     def on_tree_double_click(self, event):
-        # TODO, this is a temp solutions, find proper one
-        # counters a bug where chords are extracted, only for the first time 
-        # doubling clicking a chord, two windows open instead of one
         if self.chord_finder_window and self.chord_finder_window.winfo_exists():
             self.chord_finder_window.destroy()
         
@@ -152,14 +149,11 @@ class MusicAnalyzer(tk.Tk):
         self.after(10, self.update_chord_name) # need to use after few milliseconds to refresh
     
     def open_chord_finder(self, notes=""):
-        if self.chord_finder_window and self.chord_finder_window.winfo_exists():
-            self.update_chord_name()
         
         self.chord_finder_window = tk.Toplevel(self)
         self.chord_finder_window.title("Chord Finder")
         self.chord_finder_window.geometry("1350x600")
 
-        print(self.chord_finder_window) # TODO DEBUG
         # Notes input field
         self.notes_label = ttk.Label(self.chord_finder_window, text="Enter Notes (comma-separated):")
         self.notes_label.pack(pady=10)
@@ -213,15 +207,13 @@ class MusicAnalyzer(tk.Tk):
     
     def on_chord_finder_close(self):
         if self.chord_finder_window and self.chord_finder_window.winfo_exists():
-            self.chord_finder_window.destroy() # TODO is not properly destorying, toplevel keeps incrementing
+            self.chord_finder_window.destroy()
             self.chord_finder_window = None
-        print(self.chord_finder_window) # TODO DEBUG
     
     def toggle_enharmonics(self):
-        # TODO, self.update_chord_name does not run even though chord finder clearly exists
         self.simplify_chords = not self.simplify_chords
         if self.chord_finder_window and self.chord_finder_window.winfo_exists():
-            self.update_chord_name
+            self.after(10, self.update_chord_name)
 
     def show_info(self):
         info_window = tk.Toplevel(self)
