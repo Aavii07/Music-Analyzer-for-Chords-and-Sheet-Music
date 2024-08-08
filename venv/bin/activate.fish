@@ -33,7 +33,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV "/Users/avishukla/Desktop/projects/pyth/MusicAnalyzer/venv"
+set -gx VIRTUAL_ENV "/Users/avishukla/Desktop/projects/pyth/Sheet-Music-and-Chords-Analyzer-Tool/venv"
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/bin" $PATH

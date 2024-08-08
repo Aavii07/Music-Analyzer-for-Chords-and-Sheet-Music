@@ -13,6 +13,8 @@ class MusicAnalyzer(tk.Tk):
         self.simplify_chords = simplify_chords
         self.chord_finder_window = None
         self.enharmonics_var = tk.BooleanVar(value=True)
+        self.persistent_key_var = tk.BooleanVar(value=False)
+        self.persistent_key = ""
         self.create_widgets()
 
     def create_widgets(self):
@@ -152,7 +154,7 @@ class MusicAnalyzer(tk.Tk):
         
         self.chord_finder_window = tk.Toplevel(self)
         self.chord_finder_window.title("Chord Finder")
-        self.chord_finder_window.geometry("1350x600")
+        self.chord_finder_window.geometry("1350x650")
 
         # Notes input field
         self.notes_label = ttk.Label(self.chord_finder_window, text="Enter Notes (comma-separated):")
@@ -173,6 +175,19 @@ class MusicAnalyzer(tk.Tk):
         self.key_entry = ttk.Entry(self.chord_finder_window)
         self.key_entry.pack(pady=10, padx=20, fill=tk.X)
         self.key_entry.bind("<KeyRelease>", self.update_chord_name)
+        
+        # Persist key if toggled to do so
+        if hasattr(self, 'persistent_key') and self.persistent_key:
+            self.key_entry.insert(0, self.persistent_key)
+        
+        # Key persistance toggle
+        self.persistent_key_checkbox = ttk.Checkbutton(
+            self.chord_finder_window, 
+            text="Use this key for new entries (persist the input)", 
+            command=self.persist_key,
+            variable=self.persistent_key_var
+        )
+        self.persistent_key_checkbox.pack(pady=10)
 
         # Display chord name
         self.chord_name_label = ttk.Label(self.chord_finder_window, text="Chord Name:", font=("Helvetica", 22))
@@ -206,6 +221,7 @@ class MusicAnalyzer(tk.Tk):
         self.chord_finder_window.protocol("WM_DELETE_WINDOW", self.on_chord_finder_close)
     
     def on_chord_finder_close(self):
+        self.persist_key() # persist key right before closing
         if self.chord_finder_window and self.chord_finder_window.winfo_exists():
             self.chord_finder_window.destroy()
             self.chord_finder_window = None
@@ -214,6 +230,12 @@ class MusicAnalyzer(tk.Tk):
         self.simplify_chords = not self.simplify_chords
         if self.chord_finder_window and self.chord_finder_window.winfo_exists():
             self.after(10, self.update_chord_name)
+    
+    def persist_key(self):
+        if not self.persistent_key_var.get():
+            self.persistent_key = "" # reset persistant key on unchecked box
+        else:
+            self.persistent_key = self.key_entry.get()
 
     def show_info(self):
         info_window = tk.Toplevel(self)

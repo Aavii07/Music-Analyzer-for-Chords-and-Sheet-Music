@@ -1,4 +1,4 @@
-#!/Users/avishukla/Desktop/projects/pyth/MusicAnalyzer/venv/bin/python3.12
+#!/Users/avishukla/Desktop/projects/pyth/Sheet-Music-and-Chords-Analyzer-Tool/venv/bin/python3.12
 # -*- coding: utf-8 -*-
 import re
 import sys
