@@ -1,4 +1,4 @@
-from music21 import converter, note, chord, pitch, analysis
+from music21 import converter, note, chord
 
 def get_score(score_path):
     try:
@@ -7,44 +7,25 @@ def get_score(score_path):
         print(f"An error occurred: {e}")
         return None
 
-def extract_chords(parts, simplify_chords=True):
+def extract_chords(parts):
     chords = []
 
     for part in parts:
         for measure in part.getElementsByClass('Measure'):
             notes_and_chords = measure.flatten().notes
-            
+
             for element in notes_and_chords:
                 if isinstance(element, note.Rest):
                     continue
-                
+
                 if isinstance(element, chord.Chord):
                     measure_number = element.measureNumber
                     offset = element.offset
-                    
-                    if simplify_chords:
-                        try:
-                            # extract pitches and create chord
-                            pitches = [p.nameWithOctave for p in element.pitches]
-                            pitch_objects = [pitch.Pitch(p) for p in pitches]
-
-                            # simplify the chord
-                            es = analysis.enharmonics.EnharmonicSimplifier(pitch_objects)
-                            pitch_objects = es.bestPitches()
-
-                            # create chord object
-                            c = chord.Chord(pitch_objects)
-                            chord_name = c.pitchedCommonName
-                        except Exception as e:
-                            #print(f"Error simplifying chord: {e}")
-                            chord_name = element.pitchedCommonName + " (*Simplifier Failed*)"
-                    else:
-                        chord_name = element.pitchedCommonName  # get chord name directly
-                    
+                    chord_name = element.pitchedCommonName
                     notes = ", ".join(p.nameWithOctave for p in element.pitches)
-                    
+
                     chords.append((part, measure_number, offset, chord_name, notes))
-                    
+
     return chords
 
 # used for instruments with multiple clefs (piano, harp, etc.)

@@ -2,7 +2,6 @@ README.md
 setup.py
 backend/__init__.py
 backend/chord_extractor.py
-backend/config.py
 backend/find_chord.py
 frontend/__init__.py
 frontend/music_analyzer.py

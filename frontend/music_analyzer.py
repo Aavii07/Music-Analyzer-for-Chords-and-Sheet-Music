@@ -6,13 +6,15 @@ from backend.find_chord import get_chord_name
 from frontend.assets.virtual_keyboard import VirtualKeyboard
 
 class MusicAnalyzer(tk.Tk):
-    def __init__(self, simplify_chords=True):
+    def __init__(self, simplify_chords=True, simplify_numeral=True):
         super().__init__()
         self.title("Music Analyzer")
-        self.geometry("1200x700")
-        self.simplify_chords = simplify_chords
+        self.geometry("1200x660")
         self.chord_finder_window = None
+        self.simplify_chords = simplify_chords
+        self.simplify_numeral = simplify_numeral
         self.enharmonics_var = tk.BooleanVar(value=True)
+        self.numeral_var = tk.BooleanVar(value=True)
         self.persistent_key_var = tk.BooleanVar(value=False)
         self.persistent_key = ""
         self.create_widgets()
@@ -94,7 +96,7 @@ class MusicAnalyzer(tk.Tk):
         self.toggle_frame.pack(side=tk.LEFT, padx=10, pady=10)
         self.toggle_button = ttk.Checkbutton(
             self.toggle_frame,
-            text="Use Enharmonics Simplifier During Extraction",
+            text="Use Enharmonics Simplifier During Extraction (recommended on)",
             command=self.toggle_enharmonics,
             variable=self.enharmonics_var
         )
@@ -111,7 +113,18 @@ class MusicAnalyzer(tk.Tk):
             parts = get_score(file_path)
             if parts:
                 label_consecutive_parts(parts)
-                self.chords = extract_chords(parts, self.simplify_chords)
+                self.chords = extract_chords(parts)
+                
+                # makes sure self.chords uses simplified chord names if needed (so filtering works)
+                if self.simplify_chords:
+                    updated_chords = []
+                    for chord in self.chords:
+                        part, measure_number, offset, chord_name, notes = chord
+                        notes_list = notes.split(", ")
+                        simplified_chord_name, _ = get_chord_name(notes_list, self.simplify_numeral, simplify_chords=True)
+                        updated_chords.append((part, measure_number, offset, simplified_chord_name, notes))
+                        self.chords = updated_chords
+                
                 self.update_table(self.chords)
                 
     def apply_filters(self, event=None):
@@ -138,6 +151,11 @@ class MusicAnalyzer(tk.Tk):
         
         for part, measure_number, offset, chord_name, notes in chords:
             part_name = part.partName or "Unknown Part"
+            
+            if self.simplify_chords:
+                notes_list = notes.split(", ")
+                simplified_chord_name, _ = get_chord_name(notes_list, self.simplify_numeral, simplify_chords=True)
+                chord_name = simplified_chord_name  # Replace chord_name with the new simplified name
             self.tree.insert("", "end", values=(part_name, measure_number, offset, chord_name, notes), tags=("padding"))
 
     def on_tree_double_click(self, event):
@@ -154,7 +172,7 @@ class MusicAnalyzer(tk.Tk):
         
         self.chord_finder_window = tk.Toplevel(self)
         self.chord_finder_window.title("Chord Finder")
-        self.chord_finder_window.geometry("1350x650")
+        self.chord_finder_window.geometry("1350x700")
 
         # Notes input field
         self.notes_label = ttk.Label(self.chord_finder_window, text="Enter Notes (comma-separated):")
@@ -183,11 +201,11 @@ class MusicAnalyzer(tk.Tk):
         # Key persistance toggle
         self.persistent_key_checkbox = ttk.Checkbutton(
             self.chord_finder_window, 
-            text="Use this key for new entries (persist the input)", 
+            text="Use this key for new entries", 
             command=self.persist_key,
             variable=self.persistent_key_var
         )
-        self.persistent_key_checkbox.pack(pady=10)
+        self.persistent_key_checkbox.pack(anchor='w', padx=30, pady=5, fill=tk.X)
 
         # Display chord name
         self.chord_name_label = ttk.Label(self.chord_finder_window, text="Chord Name:", font=("Helvetica", 22))
@@ -210,13 +228,22 @@ class MusicAnalyzer(tk.Tk):
         self.info_button.pack(pady=10)
 
         # Enharmonics toggle
-        self.toggle_button = ttk.Checkbutton(
+        self.toggle_enharmonics_button = ttk.Checkbutton(
             self.chord_finder_window, 
-            text="Enharmonics Simplifier", 
+            text="Enharmonics Simplifier (recommended on)", 
             command=self.toggle_enharmonics,
             variable=self.enharmonics_var
         )
-        self.toggle_button.pack(side=tk.LEFT, padx=10, pady=10)
+        self.toggle_enharmonics_button.pack(anchor='w', padx=30, pady=5, fill=tk.X)
+        
+        # Numeral toggle
+        self.toggle_numeral_button = ttk.Checkbutton(
+            self.chord_finder_window, 
+            text="Simplify Chord Symbols (recommended on)", 
+            command=self.toggle_numeral,
+            variable=self.numeral_var
+        )
+        self.toggle_numeral_button.pack(anchor='w', padx=30, pady=5, fill=tk.X)
         
         self.chord_finder_window.protocol("WM_DELETE_WINDOW", self.on_chord_finder_close)
     
@@ -228,6 +255,11 @@ class MusicAnalyzer(tk.Tk):
     
     def toggle_enharmonics(self):
         self.simplify_chords = not self.simplify_chords
+        if self.chord_finder_window and self.chord_finder_window.winfo_exists():
+            self.after(10, self.update_chord_name)
+    
+    def toggle_numeral(self):
+        self.simplify_numeral = not self.simplify_numeral
         if self.chord_finder_window and self.chord_finder_window.winfo_exists():
             self.after(10, self.update_chord_name)
     
@@ -273,7 +305,7 @@ class MusicAnalyzer(tk.Tk):
         notes_list = [note.strip() for note in notes_input.split(',') if note.strip()]
         note_set = set(notes_list)
         
-        chord_name, chord_relation = get_chord_name(note_set, key_input, self.simplify_chords)
+        chord_name, chord_relation = get_chord_name(note_set, key_input, self.simplify_numeral, self.simplify_chords)
         
         self.chord_name_display.config(text=chord_name)
         if chord_relation:

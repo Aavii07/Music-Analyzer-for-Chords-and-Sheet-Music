@@ -1,6 +1,7 @@
 from music21 import chord, pitch, key, roman, analysis
+import re
 
-def get_chord_name(note_set, key_name=None, simplify_chords=True):
+def get_chord_name(note_set, key_name=None, simplify_numeral=True, simplify_chords=True):
     notes = []
     for n in note_set:
         try:
@@ -25,12 +26,12 @@ def get_chord_name(note_set, key_name=None, simplify_chords=True):
     
     # if key, call function to calculate chord relationship
     if key_name:
-        chord_relation = get_chord_relationship(c, key_name)
+        chord_relation = get_chord_relationship(c, key_name, simplify_numeral)
         return chord_name, chord_relation
     else:
         return chord_name, None
 
-def get_chord_relationship(chord_obj, key_name):
+def get_chord_relationship(chord_obj, key_name, simplify_numeral):
     
     try:
         key_obj = key.Key(key_name)
@@ -47,12 +48,19 @@ def get_chord_relationship(chord_obj, key_name):
         # make sure to use major key's roman numeral due to bug calculating a major or minor key's iii and III chord
         major_key_obj = key.Key(key_obj.tonic.name)
         
-        roman_numeral = roman.romanNumeralFromChord(chord_obj, major_key_obj)
+        roman_numeral = roman.romanNumeralFromChord(chord_obj, major_key_obj).figure
+        if simplify_numeral:
+            # extract the Roman numeral and sharps/flats at the beginning
+            numeral_match = re.match(r'^[#b\-]*[ivIV]+', roman_numeral)
+            if numeral_match:
+                simplified_numeral = numeral_match.group()
+                roman_numeral = simplified_numeral
+        
         key_type = "minor" if key_obj.mode == "minor" else "major"
         
         if isDiatonic:
-            return f"This chord is the {roman_numeral.figure} chord in the key of {key_name} {key_type}.\nThis chord is diatonic to the key of {key_name} {key_type}"
+            return f"This chord is the {roman_numeral} chord in the key of {key_name} {key_type}.\nThis chord is diatonic to the key of {key_name} {key_type}"
         else:
-            return f"This chord is the {roman_numeral.figure} chord in the key of {key_name} {key_type}.\nThis chord is not diatonic to the key of {key_name} {key_type}"
+            return f"This chord is the {roman_numeral} chord in the key of {key_name} {key_type}.\nThis chord is not diatonic to the key of {key_name} {key_type}"
     except Exception as e:
         return f"Error calculating chord relationship: {e}"
