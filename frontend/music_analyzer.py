@@ -75,6 +75,7 @@ class MusicAnalyzer(tk.Tk):
 
         # table
         self.tree = ttk.Treeview(self, columns=("Part", "Measure", "Beat", "Chord Name", "Notes"), show="headings")
+        self.tree.configure(selectmode="extended")
         self.tree.heading("Part", text="Part")
         self.tree.heading("Measure", text="Measure")
         self.tree.heading("Beat", text="Beat")
@@ -115,10 +116,9 @@ class MusicAnalyzer(tk.Tk):
         )
         self.filter_dropdown.pack(side=tk.RIGHT, padx=10, pady=10)
         
-        # Add Event Listener for Dropdown Change
         self.filter_dropdown.bind("<<ComboboxSelected>>", self.apply_filters)
         
-        # Frame for displaying filtered content
+        # frame for displaying filtered content
         self.table_frame = ttk.Frame(self)
         self.table_frame.pack(side=tk.RIGHT, expand=True, padx=10, pady=10)
 
@@ -202,11 +202,17 @@ class MusicAnalyzer(tk.Tk):
         if self.chord_finder_window and self.chord_finder_window.winfo_exists():
             self.chord_finder_window.destroy()
         
-        item = self.tree.selection()[0]
-        values = self.tree.item(item, "values")
-        notes = values[4]  # notes are in the 5th column
-        self.open_chord_finder(notes)
-        self.after(10, self.update_chord_name) # need to use after few milliseconds to refresh
+        selected_items = self.tree.selection()
+        selected_notes = []
+        
+        for item in selected_items:
+            chord_data = self.tree.item(item, 'values')
+            notes = chord_data[4]  # notes on 5th column
+            selected_notes.extend(notes.split(", "))
+            
+        combined_notes = ", ".join(selected_notes) # need to pass string, not list
+        self.open_chord_finder(combined_notes)
+        self.after(10, self.update_chord_name)
     
     def open_chord_finder(self, notes=""):
         
