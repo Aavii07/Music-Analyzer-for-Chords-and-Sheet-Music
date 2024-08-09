@@ -17,6 +17,7 @@ class MusicAnalyzer(tk.Tk):
         self.numeral_var = tk.BooleanVar(value=True)
         self.persistent_key_var = tk.BooleanVar(value=False)
         self.persistent_key = ""
+        self.music_data = []
         self.create_widgets()
 
     def create_widgets(self):
@@ -101,6 +102,25 @@ class MusicAnalyzer(tk.Tk):
             variable=self.enharmonics_var
         )
         self.toggle_button.pack(side=tk.LEFT, padx=10, pady=10)
+        
+        # dropdown
+        self.filter_options = ["By Instrument", "By Measure and Beat"]
+        self.filter_var = tk.StringVar(value=self.filter_options[0])
+        
+        self.filter_dropdown = ttk.Combobox(
+            self,
+            textvariable=self.filter_var,
+            values=self.filter_options,
+            state="readonly"
+        )
+        self.filter_dropdown.pack(side=tk.RIGHT, padx=10, pady=10)
+        
+        # Add Event Listener for Dropdown Change
+        self.filter_dropdown.bind("<<ComboboxSelected>>", self.apply_filters)
+        
+        # Frame for displaying filtered content
+        self.table_frame = ttk.Frame(self)
+        self.table_frame.pack(side=tk.RIGHT, expand=True, padx=10, pady=10)
 
 
     def load_file(self):
@@ -112,22 +132,42 @@ class MusicAnalyzer(tk.Tk):
             self.file_path = file_path
             parts = get_score(file_path)
             if parts:
+                # make sure it only has new data
+                self.music_data = []
+                self.chords = []
+                
                 label_consecutive_parts(parts)
                 self.chords = extract_chords(parts)
-                
-                # makes sure self.chords uses simplified chord names if needed (so filtering works)
+
                 if self.simplify_chords:
-                    updated_chords = []
                     for chord in self.chords:
                         part, measure_number, offset, chord_name, notes = chord
                         notes_list = notes.split(", ")
                         simplified_chord_name, _ = get_chord_name(notes_list, self.simplify_numeral, simplify_chords=True)
-                        updated_chords.append((part, measure_number, offset, simplified_chord_name, notes))
-                        self.chords = updated_chords
+                        self.music_data.append((part, measure_number, offset, simplified_chord_name, notes))
+                    self.chords = self.music_data
+                else:
+                    for chord in self.chords:
+                        part, measure_number, offset, chord_name, notes = chord
+                        self.music_data.append((part, measure_number, offset, chord_name, notes))
                 
-                self.update_table(self.chords)
+                self.music_data = self.chords                 
+                self.apply_filters(self.chords)
                 
     def apply_filters(self, event=None):
+        selected_filter = self.filter_var.get()
+        if selected_filter == "By Instrument":
+            
+            filtered_chords = self.apply_filters_helper(self.music_data)         
+            self.update_table(filtered_chords)
+        
+        elif selected_filter == "By Measure and Beat":
+            sorted_data = sorted(self.music_data, key=lambda x: (x[1], x[2]))
+             
+            filtered_chords = self.apply_filters_helper(sorted_data)         
+            self.update_table(filtered_chords)
+    
+    def apply_filters_helper(self, data):
         part_filter = self.part_entry.get().lower()
         measure_from_filter = self.measure_from_entry.get()
         measure_until_filter = self.measure_until_entry.get()
@@ -135,15 +175,15 @@ class MusicAnalyzer(tk.Tk):
         beat_until_filter = self.beat_until_entry.get()
         chord_filter = self.chord_entry.get().lower()
 
-        filtered_chords = [chord for chord in self.chords
-                           if (part_filter in chord[0].partName.lower() if part_filter else True) and
-                           (measure_from_filter.isdigit() and int(measure_from_filter) <= chord[1] or not measure_from_filter) and
-                           (measure_until_filter.isdigit() and chord[1] <= int(measure_until_filter) or not measure_until_filter) and
-                           (beat_from_filter.isdigit() and int(beat_from_filter) <= chord[2] or not beat_from_filter) and
-                           (beat_until_filter.isdigit() and chord[2] <= int(beat_until_filter) or not beat_until_filter) and
-                           (chord_filter in chord[3].lower() if chord_filter else True)]
-
-        self.update_table(filtered_chords)
+        filtered_chords = [chord for chord in data
+                        if (part_filter in chord[0].partName.lower() if part_filter else True) and
+                            (measure_from_filter.isdigit() and int(measure_from_filter) <= chord[1] or not measure_from_filter) and
+                            (measure_until_filter.isdigit() and chord[1] <= int(measure_until_filter) or not measure_until_filter) and
+                            (beat_from_filter.isdigit() and int(beat_from_filter) <= chord[2] or not beat_from_filter) and
+                            (beat_until_filter.isdigit() and chord[2] <= int(beat_until_filter) or not beat_until_filter) and
+                            (chord_filter in chord[3].lower() if chord_filter else True)]
+        return filtered_chords
+             
 
     def update_table(self, chords):
         for item in self.tree.get_children():
@@ -155,7 +195,7 @@ class MusicAnalyzer(tk.Tk):
             if self.simplify_chords:
                 notes_list = notes.split(", ")
                 simplified_chord_name, _ = get_chord_name(notes_list, self.simplify_numeral, simplify_chords=True)
-                chord_name = simplified_chord_name  # Replace chord_name with the new simplified name
+                chord_name = simplified_chord_name  # replace chord_name with the new simplified name
             self.tree.insert("", "end", values=(part_name, measure_number, offset, chord_name, notes), tags=("padding"))
 
     def on_tree_double_click(self, event):
