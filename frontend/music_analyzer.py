@@ -1,7 +1,7 @@
 import tkinter as tk
 import re
 from tkinter import ttk, filedialog
-from backend.chord_extractor import get_score, label_consecutive_parts, extract_chords
+from backend.chord_extractor import get_score_parts, label_consecutive_parts, extract_chords
 from backend.find_chord import get_chord_name
 from frontend.assets.virtual_keyboard import VirtualKeyboard
 
@@ -130,7 +130,7 @@ class MusicAnalyzer(tk.Tk):
         
         if file_path:
             self.file_path = file_path
-            parts = get_score(file_path)
+            parts = get_score_parts(file_path)
             if parts:
                 # make sure it only has new data
                 self.music_data = []
@@ -266,12 +266,8 @@ class MusicAnalyzer(tk.Tk):
         self.chord_relation_display.pack(pady=10)
 
         # Virtual keyboard
-        self.virtual_keyboard = VirtualKeyboard(self.chord_finder_window)
+        self.virtual_keyboard = VirtualKeyboard(self.chord_finder_window, self.update_chord_name)
         self.virtual_keyboard.pack(pady=20)
-
-        # Info button
-        self.info_button = ttk.Button(self.chord_finder_window, text="Info", command=self.show_info)
-        self.info_button.pack(pady=10)
 
         # Enharmonics toggle
         self.toggle_enharmonics_button = ttk.Checkbutton(
@@ -314,39 +310,37 @@ class MusicAnalyzer(tk.Tk):
             self.persistent_key = "" # reset persistant key on unchecked box
         else:
             self.persistent_key = self.key_entry.get()
-
-    def show_info(self):
-        info_window = tk.Toplevel(self)
-        info_window.title("Information")
-        info_window.geometry("500x400")
-
-        # make window modal
-        info_window.transient(self)
-        info_window.grab_set() 
-
-        content_frame = ttk.Frame(info_window)
-        content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-
-        info_text = ("Notes about the Chord Finder\n\n"
-                    "Notes should be entered as a comma-seperated list (like a1, c#2, e2)\n\n"
-                    "Using '-' or 'b' denotes flat while '#' denotes sharp.\n" 
-                    "Sharping/flating notes multiple times are supported, but it won't appear on the keyboard.\n\n"
-                    "For more granularity, end the note with a number to denote the exact note (like A#4 instead of A#)\n" 
-                    "If you do not do this, all notes are all assumed to be in the 4th octave\n\n"
-                    "Scales can also be entered here too\n"
-                    "Just note that the tool does not distinguish between major and mino scales too well")
-
-        info_label = ttk.Label(content_frame, text=info_text, wraplength=400, justify=tk.LEFT)
-        info_label.pack(fill=tk.BOTH, expand=True)
-
-        ok_button = ttk.Button(info_window, text="OK", command=info_window.destroy)
-        ok_button.pack(side=tk.BOTTOM, pady=10)
-
-        info_window.wait_window()
         
-    def update_chord_name(self, event=None):
+    def update_chord_name(self, event=None, keyboard_triggered=False):
         notes_input = self.notes_entry.get().strip()
         key_input = self.key_entry.get().strip()
+        
+        last_clicked_note = self.virtual_keyboard.last_clicked_note
+        if keyboard_triggered:
+            last_clicked_note = self.virtual_keyboard.last_clicked_note
+            notes_list = [note.strip() for note in notes_input.split(',') if note.strip()]
+            
+            equivalent_notes = get_equivalent_notes(last_clicked_note) 
+            all_notes_to_remove = set([last_clicked_note] + equivalent_notes)        
+            for note in notes_list:
+                note = normalize_note(note)
+            
+            # remove/append clicked note
+            if any(note in notes_list for note in all_notes_to_remove):
+                # If any of the notes are in the list, remove them
+                notes_list = [note for note in notes_list if note not in all_notes_to_remove]
+            else:
+                # Otherwise, append the clicked note
+                notes_list.append(last_clicked_note)
+            
+            if notes_input == []:
+                notes_input = notes_list
+            else:
+                notes_input = ', '.join(notes_list)
+            
+            # update the notes_entry field with the new value
+            self.notes_entry.delete(0, 'end')
+            self.notes_entry.insert(0, notes_input)
         
         notes_list = [note.strip() for note in notes_input.split(',') if note.strip()]
         note_set = set(notes_list)
@@ -365,10 +359,51 @@ class MusicAnalyzer(tk.Tk):
         
         # highlight the new keys
         for note in note_set:
-            upperCaseNote = note = re.sub(r'^([a-z])', lambda x: x.group(1).upper(), note) # music21 only recognizes uppercase notes
-            if not re.search(r'\d$', upperCaseNote):
-                upperCaseNote += '4'  # music21 defaults to 4th octave if no exact note specified
-                
-            self.virtual_keyboard.highlight_key(upperCaseNote)
+            normalized_note = normalize_note(note)
+            self.virtual_keyboard.highlight_key(normalized_note)
             
+def normalize_note(note):
+    upperCaseNote = re.sub(r'^([a-z])', lambda x: x.group(1).upper(), note)  # music21 only recognizes uppercase notes
+    if not re.search(r'\d$', upperCaseNote):
+        upperCaseNote += '4'  # music21 defaults to 4th octave if no exact note specified
+    return upperCaseNote
 
+# get any shift clicked equivalent notes
+def get_equivalent_notes(note):
+    equivalent_notes = []
+    octave = (re.search(r'\d+', note)).group(0)
+    if note == ('E#' + octave) or note == ('F' + octave):
+        equivalent_notes.append('F' + octave)
+        equivalent_notes.append('E#' + octave)
+    if note == ('E' + octave) or note == ('F-' + octave) or note == ('Fb' + octave):
+        equivalent_notes.append('F-' + octave)
+        equivalent_notes.append('Fb' + octave)
+        equivalent_notes.append('E' + octave)
+    if note == ('B#' + octave):
+        equivalent_notes.append('C' + str(int(octave) + 1))
+    if note == ('C' + octave):
+        equivalent_notes.append('B#' + str(int(octave) - 1))
+    if note == ('B' + octave):
+        equivalent_notes.append('C-' + str(int(octave) + 1))
+        equivalent_notes.append('Cb' + str(int(octave) + 1))        
+    if note == ('F#' + octave) or note == ('G-' + octave) or note == ('Gb' + octave):
+        equivalent_notes.append('F#' + octave)
+        equivalent_notes.append('Gb' + octave)
+        equivalent_notes.append('G-' + octave)
+    if note == ('G#' + octave) or note == ('Ab' + octave) or note == ('A-' + octave):
+        equivalent_notes.append('G#' + octave)
+        equivalent_notes.append('Ab' + octave)
+        equivalent_notes.append('A-' + octave)
+    if note == ('A#' + octave) or note == ('B-' + octave) or note == ('Bb' + octave):
+        equivalent_notes.append('A#' + octave)
+        equivalent_notes.append('B-' + octave)
+        equivalent_notes.append('Bb' + octave)
+    if note == ('C#' + octave) or note == ('D-' + octave) or note == ('Db' + octave):
+        equivalent_notes.append('C#' + octave)
+        equivalent_notes.append('D-' + octave)
+        equivalent_notes.append('Db' + octave)
+    if note == ('D#' + octave) or note == ('E-' + octave) or note == ('Eb' + octave):
+        equivalent_notes.append('D#' + octave)
+        equivalent_notes.append('E-' + octave)
+        equivalent_notes.append('Eb' + octave)
+    return equivalent_notes

@@ -1,6 +1,6 @@
 from music21 import converter, note, chord
 
-def get_score(score_path):
+def get_score_parts(score_path):
     try:
         return converter.parse(score_path).parts
     except Exception as e:
@@ -47,9 +47,4 @@ def label_consecutive_parts(parts):
     for part in parts:
         part.partName = part_labels.get(part, "Unknown Part")
     
-def format_chord_sheet(chords):
-    chord_sheet = ""
-    for part, measure_number, beat, chord_name, notes in chords:
-        part_name = part.partName or "Unknown Part"
-        chord_sheet += f"Part: {part_name}, Measure {measure_number}, Beat {beat}: {chord_name}, Notes: {notes}\n"
-    return chord_sheet
+
