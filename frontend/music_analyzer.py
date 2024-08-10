@@ -4,21 +4,26 @@ from tkinter import ttk, filedialog
 from backend.chord_extractor import get_score_parts, label_consecutive_parts, extract_chords
 from backend.find_chord import get_chord_name
 from frontend.assets.virtual_keyboard import VirtualKeyboard
+from music21 import chord, pitch, key, roman, analysis
 
 class MusicAnalyzer(tk.Tk):
-    def __init__(self, simplify_chords=True, simplify_numeral=True):
+    def __init__(self, simplify_chords=True, simplify_numeral=True, sound=True):
         super().__init__()
         self.title("Music Analyzer")
         self.geometry("1200x660")
         self.chord_finder_window = None
         self.simplify_chords = simplify_chords
         self.simplify_numeral = simplify_numeral
+        self.sound = sound
         self.enharmonics_var = tk.BooleanVar(value=True)
         self.numeral_var = tk.BooleanVar(value=True)
+        self.sound_var = tk.BooleanVar(value=True)
         self.persistent_key_var = tk.BooleanVar(value=False)
         self.persistent_key = ""
         self.music_data = []
         self.create_widgets()
+        self.bind('<Command-n>', self.open_chord_finder) # Windows and MacOS
+        self.bind('<Control-n>', self.open_chord_finder) # MacOS
 
     def create_widgets(self):
         self.header_frame = ttk.Frame(self)
@@ -214,7 +219,7 @@ class MusicAnalyzer(tk.Tk):
         self.open_chord_finder(combined_notes)
         self.after(10, self.update_chord_name)
     
-    def open_chord_finder(self, notes=""):
+    def open_chord_finder(self, event=None, notes=""):
         
         self.chord_finder_window = tk.Toplevel(self)
         self.chord_finder_window.title("Chord Finder")
@@ -266,7 +271,7 @@ class MusicAnalyzer(tk.Tk):
         self.chord_relation_display.pack(pady=10)
 
         # Virtual keyboard
-        self.virtual_keyboard = VirtualKeyboard(self.chord_finder_window, self.update_chord_name)
+        self.virtual_keyboard = VirtualKeyboard(self.chord_finder_window, self.update_chord_name, self.sound)
         self.virtual_keyboard.pack(pady=20)
 
         # Enharmonics toggle
@@ -287,6 +292,15 @@ class MusicAnalyzer(tk.Tk):
         )
         self.toggle_numeral_button.pack(anchor='w', padx=30, pady=5, fill=tk.X)
         
+        # Sound toggle
+        self.toggle_sound_button = ttk.Checkbutton(
+            self.chord_finder_window, 
+            text="Play Key on Click", 
+            command=self.toggle_sound,
+            variable=self.sound_var
+        )
+        self.toggle_sound_button.pack(anchor='w', padx=30, pady=5, fill=tk.X)
+        
         self.chord_finder_window.protocol("WM_DELETE_WINDOW", self.on_chord_finder_close)
     
     def on_chord_finder_close(self):
@@ -305,6 +319,10 @@ class MusicAnalyzer(tk.Tk):
         if self.chord_finder_window and self.chord_finder_window.winfo_exists():
             self.after(10, self.update_chord_name)
     
+    def toggle_sound(self):
+        self.sound = not self.sound
+        self.virtual_keyboard.toggle_sound(self.sound)
+    
     def persist_key(self):
         if not self.persistent_key_var.get():
             self.persistent_key = "" # reset persistant key on unchecked box
@@ -321,24 +339,20 @@ class MusicAnalyzer(tk.Tk):
             notes_list = [note.strip() for note in notes_input.split(',') if note.strip()]
             
             equivalent_notes = get_equivalent_notes(last_clicked_note) 
-            all_notes_to_remove = set([last_clicked_note] + equivalent_notes)        
-            for note in notes_list:
-                note = normalize_note(note)
+            all_notes_to_remove = set([last_clicked_note] + equivalent_notes)
+
+            # make sure to remove any unnormalized versions of the clicked note or its equivalent notes
+            updated_notes_list = [
+                note for note in notes_list
+                if normalize_note(note) not in all_notes_to_remove
+            ]
             
-            # remove/append clicked note
-            if any(note in notes_list for note in all_notes_to_remove):
-                # If any of the notes are in the list, remove them
-                notes_list = [note for note in notes_list if note not in all_notes_to_remove]
-            else:
-                # Otherwise, append the clicked note
-                notes_list.append(last_clicked_note)
-            
-            if notes_input == []:
-                notes_input = notes_list
-            else:
-                notes_input = ', '.join(notes_list)
-            
-            # update the notes_entry field with the new value
+            # append the clicked note if it wasn't removed
+            if len(updated_notes_list) == len(notes_list):
+                updated_notes_list.append(last_clicked_note)
+
+            notes_input = ', '.join(updated_notes_list)
+
             self.notes_entry.delete(0, 'end')
             self.notes_entry.insert(0, notes_input)
         
@@ -363,9 +377,9 @@ class MusicAnalyzer(tk.Tk):
             self.virtual_keyboard.highlight_key(normalized_note)
             
 def normalize_note(note):
-    upperCaseNote = re.sub(r'^([a-z])', lambda x: x.group(1).upper(), note)  # music21 only recognizes uppercase notes
+    upperCaseNote = re.sub(r'^([a-z])', lambda x: x.group(1).upper(), note) # music21 only recognizes uppercase notes
     if not re.search(r'\d$', upperCaseNote):
-        upperCaseNote += '4'  # music21 defaults to 4th octave if no exact note specified
+        upperCaseNote += '4' # music21 defaults to 4th octave if no exact note specified
     return upperCaseNote
 
 # get any shift clicked equivalent notes
@@ -385,7 +399,9 @@ def get_equivalent_notes(note):
         equivalent_notes.append('B#' + str(int(octave) - 1))
     if note == ('B' + octave):
         equivalent_notes.append('C-' + str(int(octave) + 1))
-        equivalent_notes.append('Cb' + str(int(octave) + 1))        
+        equivalent_notes.append('Cb' + str(int(octave) + 1))
+    if note == ('Cb' + octave) or note == ('C-' + octave):
+        equivalent_notes.append('B' + str(int(octave) - 1))           
     if note == ('F#' + octave) or note == ('G-' + octave) or note == ('Gb' + octave):
         equivalent_notes.append('F#' + octave)
         equivalent_notes.append('Gb' + octave)

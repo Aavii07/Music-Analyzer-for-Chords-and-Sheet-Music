@@ -1,7 +1,8 @@
 import tkinter as tk
+import pygame
 
 class VirtualKeyboard(tk.Frame):
-    def __init__(self, parent, update_chord_callback, *args, **kwargs):
+    def __init__(self, parent, update_chord_callback, sound, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         self.canvas = tk.Canvas(self, bg='white', height=98, width=1298)
         self.canvas.pack(fill=tk.BOTH, expand=True)
@@ -10,7 +11,29 @@ class VirtualKeyboard(tk.Frame):
         self.key_click_state = {} 
         self.last_clicked_note = None
         self.update_chord_callback = update_chord_callback # use to avoid circular dependency
+        self.sound = sound
         self.create_keys()
+        pygame.mixer.init()
+        self.current_sound = None
+        self.note_sounds = self.load_note_sounds()
+    
+    def load_note_sounds(self):
+        note_sounds = {}
+        for note in self.note_to_key_mapping.keys():
+            try:
+                note_sounds[note] = pygame.mixer.Sound(f'sounds/{note}.wav')
+            except pygame.error:
+                print(f"Sound file for {note} not found.")
+        return note_sounds
+
+    def play_note_sound(self, note):
+        if self.current_sound:
+            self.current_sound.stop()
+        
+        sound = self.note_sounds.get(note)
+        if sound:
+            self.current_sound = sound
+            sound.play()
 
     def create_keys(self):
         self.keys = {}
@@ -44,12 +67,12 @@ class VirtualKeyboard(tk.Frame):
         return {
             # Octave 0
             'A0': 'Wh1', 'B0': 'Wh2',
-            'A#0': 'Bl1', 'B#0': 'Wh3',
+            'A#0': 'Bl1', 'C1': 'Wh3',
             'B-0': 'Bl1', 
             'Bb0': 'Bl1',
             
             # Octave 1
-            'C1': 'Wh3', 'D1': 'Wh4', 'E1': 'Wh5', 'F1': 'Wh6', 'G1': 'Wh7', 'A1': 'Wh8', 'B1': 'Wh9',
+            'B#0': 'Wh3', 'D1': 'Wh4', 'E1': 'Wh5', 'F1': 'Wh6', 'G1': 'Wh7', 'A1': 'Wh8', 'B1': 'Wh9',
             'C#1': 'Bl3', 'D#1': 'Bl4', 'E#1': 'Wh6', 'F#1': 'Bl6', 'G#1': 'Bl7', 'A#1': 'Bl8', 'C2': 'Wh10',
             'D-1': 'Bl3', 'E-1': 'Bl4', 'F-1': 'Wh5', 'G-1': 'Bl6', 'A-1': 'Bl7', 'B-1': 'Bl8', 'C-1': 'Wh2',
             'Db1': 'Bl3', 'Eb1': 'Bl4', 'Fb1': 'Wh5', 'Gb1': 'Bl6', 'Ab1': 'Bl7', 'Bb1': 'Bl8', 'Cb1': 'Wh2',
@@ -73,8 +96,8 @@ class VirtualKeyboard(tk.Frame):
             'Db4': 'Bl24', 'Eb4': 'Bl25', 'Fb4': 'Wh26', 'Gb4': 'Bl27', 'Ab4': 'Bl28', 'Bb4': 'Bl29', 'Cb4': 'Wh23',
             
             # Octave 5
-            'C5': 'Wh31', 'D5': 'Wh32', 'E5': 'Wh33', 'F5': 'Wh34', 'G5': 'Wh35', 'A5': 'Wh36', 'B5': 'Wh37',
-            'B#4': 'Bl31', 'D#5': 'Bl32', 'E#5': 'Wh34', 'F#5': 'Bl34', 'G#5': 'Bl35', 'A#5': 'Bl36', 'C6': 'Wh38',
+            'B#4': 'Wh31', 'D5': 'Wh32', 'E5': 'Wh33', 'F5': 'Wh34', 'G5': 'Wh35', 'A5': 'Wh36', 'B5': 'Wh37',
+            'C#5': 'Bl31', 'D#5': 'Bl32', 'E#5': 'Wh34', 'F#5': 'Bl34', 'G#5': 'Bl35', 'A#5': 'Bl36', 'C6': 'Wh38',
             'D-5': 'Bl31', 'E-5': 'Bl32', 'F-5': 'Wh33', 'G-5': 'Bl34', 'A-5': 'Bl35', 'B-5': 'Bl36', 'C-5': 'Wh30',
             'Db5': 'Bl31', 'Eb5': 'Bl32', 'Gb5': 'Bl34', 'Ab5': 'Bl35', 'Bb5': 'Bl36', 'Cb5': 'Wh30', 'Fb5': 'Wh33',
             
@@ -85,8 +108,8 @@ class VirtualKeyboard(tk.Frame):
             'Db6': 'Bl38', 'Eb6': 'Bl39', 'Fb6': 'Wh40', 'Gb6': 'Bl41', 'Ab6': 'Bl42', 'Bb6': 'Bl43', 'Cb6': 'Wh37',
             
             # Octave 7
-            'C7': 'Wh45', 'D7': 'Wh46', 'E7': 'Wh47', 'F7': 'Wh48', 'G7': 'Wh49', 'A7': 'Wh50', 'B7': 'Wh51',
-            'B#6': 'Bl45', 'D#7': 'Bl46', 'E#7': 'Wh48', 'F#7': 'Bl48', 'G#7': 'Bl49', 'A#7': 'Bl50', 'C8': 'Wh52',
+            'B#6': 'Wh45', 'D7': 'Wh46', 'E7': 'Wh47', 'F7': 'Wh48', 'G7': 'Wh49', 'A7': 'Wh50', 'B7': 'Wh51',
+            'C#7': 'Bl45', 'D#7': 'Bl46', 'E#7': 'Wh48', 'F#7': 'Bl48', 'G#7': 'Bl49', 'A#7': 'Bl50', 'C8': 'Wh52',
             'D-7': 'Bl45', 'E-7': 'Bl46', 'F-7': 'Wh47', 'G-7': 'Bl48', 'A-7': 'Bl49', 'B-7': 'B50', 'C-7': 'Wh44',
             'Db7': 'Bl45', 'Eb7': 'Bl46', 'Fb7': 'Wh47', 'Gb7': 'Bl48', 'Ab7': 'Bl49', 'Bb7': 'B50', 'Cb7': 'Wh44', 
             
@@ -139,8 +162,15 @@ class VirtualKeyboard(tk.Frame):
                     note = self.get_note_from_key(key, second_mapping=True)
                 
                 self.last_clicked_note = note
+                
+                key_color = self.canvas.itemcget(key_id, 'fill')
+                if self.sound and key_color != 'yellow':
+                    self.play_note_sound(note)
+                    
                 self.update_chord_callback(keyboard_triggered=True)
     
+    def toggle_sound(self, sound):
+        self.sound = sound
     
 
             
