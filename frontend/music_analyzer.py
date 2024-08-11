@@ -216,7 +216,7 @@ class MusicAnalyzer(tk.Tk):
             selected_notes.extend(notes.split(", "))
             
         combined_notes = ", ".join(selected_notes) # need to pass string, not list
-        self.open_chord_finder(combined_notes)
+        self.open_chord_finder(notes=combined_notes)
         self.after(10, self.update_chord_name)
     
     def open_chord_finder(self, event=None, notes=""):
@@ -371,10 +371,18 @@ class MusicAnalyzer(tk.Tk):
         # reset key colors before highlighting new ones
         self.virtual_keyboard.reset_all_keys()       
         
-        # highlight the new keys
+        pitch_list = [] 
         for note in note_set:
             normalized_note = normalize_note(note)
-            self.virtual_keyboard.highlight_key(normalized_note)
+            p = pitch.Pitch(normalized_note)
+            pitch_list.append(p) 
+
+        # simplify the pitch list (for notes with 2+ accidentals)
+        simplified_notes = [str(p.simplifyEnharmonic(mostCommon=True)) for p in pitch_list]
+
+        # highlight the new keys
+        for note in simplified_notes:
+            self.virtual_keyboard.highlight_key(note)
             
 def normalize_note(note):
     upperCaseNote = re.sub(r'^([a-z])', lambda x: x.group(1).upper(), note) # music21 only recognizes uppercase notes
@@ -385,41 +393,25 @@ def normalize_note(note):
 # get any shift clicked equivalent notes
 def get_equivalent_notes(note):
     equivalent_notes = []
-    octave = (re.search(r'\d+', note)).group(0)
-    if note == ('E#' + octave) or note == ('F' + octave):
-        equivalent_notes.append('F' + octave)
-        equivalent_notes.append('E#' + octave)
-    if note == ('E' + octave) or note == ('F-' + octave) or note == ('Fb' + octave):
-        equivalent_notes.append('F-' + octave)
-        equivalent_notes.append('Fb' + octave)
-        equivalent_notes.append('E' + octave)
-    if note == ('B#' + octave):
-        equivalent_notes.append('C' + str(int(octave) + 1))
-    if note == ('C' + octave):
-        equivalent_notes.append('B#' + str(int(octave) - 1))
-    if note == ('B' + octave):
-        equivalent_notes.append('C-' + str(int(octave) + 1))
-        equivalent_notes.append('Cb' + str(int(octave) + 1))
-    if note == ('Cb' + octave) or note == ('C-' + octave):
-        equivalent_notes.append('B' + str(int(octave) - 1))           
-    if note == ('F#' + octave) or note == ('G-' + octave) or note == ('Gb' + octave):
-        equivalent_notes.append('F#' + octave)
-        equivalent_notes.append('Gb' + octave)
-        equivalent_notes.append('G-' + octave)
-    if note == ('G#' + octave) or note == ('Ab' + octave) or note == ('A-' + octave):
-        equivalent_notes.append('G#' + octave)
-        equivalent_notes.append('Ab' + octave)
-        equivalent_notes.append('A-' + octave)
-    if note == ('A#' + octave) or note == ('B-' + octave) or note == ('Bb' + octave):
-        equivalent_notes.append('A#' + octave)
-        equivalent_notes.append('B-' + octave)
-        equivalent_notes.append('Bb' + octave)
-    if note == ('C#' + octave) or note == ('D-' + octave) or note == ('Db' + octave):
-        equivalent_notes.append('C#' + octave)
-        equivalent_notes.append('D-' + octave)
-        equivalent_notes.append('Db' + octave)
-    if note == ('D#' + octave) or note == ('E-' + octave) or note == ('Eb' + octave):
-        equivalent_notes.append('D#' + octave)
-        equivalent_notes.append('E-' + octave)
-        equivalent_notes.append('Eb' + octave)
+    octave = re.search(r'\d+', note).group(0)
+    
+    switch_dict = {
+        ('E#' + octave, 'F' + octave): ['F' + octave, 'E#' + octave],
+        ('E' + octave, 'F-' + octave, 'Fb' + octave): ['F-' + octave, 'Fb' + octave, 'E' + octave],
+        ('B#' + octave,): ['C' + str(int(octave) + 1)],
+        ('C' + octave,): ['B#' + str(int(octave) - 1)],
+        ('B' + octave,): ['C-' + str(int(octave) + 1), 'Cb' + str(int(octave) + 1)],
+        ('Cb' + octave, 'C-' + octave): ['B' + str(int(octave) - 1)],
+        ('F#' + octave, 'G-' + octave, 'Gb' + octave): ['F#' + octave, 'Gb' + octave, 'G-' + octave],
+        ('G#' + octave, 'Ab' + octave, 'A-' + octave): ['G#' + octave, 'Ab' + octave, 'A-' + octave],
+        ('A#' + octave, 'B-' + octave, 'Bb' + octave): ['A#' + octave, 'B-' + octave, 'Bb' + octave],
+        ('C#' + octave, 'D-' + octave, 'Db' + octave): ['C#' + octave, 'D-' + octave, 'Db' + octave],
+        ('D#' + octave, 'E-' + octave, 'Eb' + octave): ['D#' + octave, 'E-' + octave, 'Eb' + octave],
+    }
+    
+    for keys, equivalents in switch_dict.items():
+        if note in keys:
+            equivalent_notes.extend(equivalents)
+            break
+
     return equivalent_notes
