@@ -3,7 +3,6 @@ import re
 
 def get_chord_name(note_set, key_name=None, simplify_numeral=True, simplify_chords=True):
     notes = []
-    complex_notes = [] # notes with 2+ accidentals
     for n in note_set:
         try:
             if isinstance(n, str) and n:
@@ -21,9 +20,6 @@ def get_chord_name(note_set, key_name=None, simplify_numeral=True, simplify_chor
     # prevent lag
     if len(notes) > 16:
         return "Chord cannot exceed 16 notes", None
-    
-    # Identify complex notes
-    complex_notes = [note for note in notes if len(re.findall(r'[b#-]', note.name)) > 1]
               
     if simplify_chords:
         es = analysis.enharmonics.EnharmonicSimplifier(notes)

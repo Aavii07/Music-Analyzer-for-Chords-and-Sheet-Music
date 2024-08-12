@@ -4,7 +4,7 @@ from tkinter import ttk, filedialog
 from backend.chord_extractor import get_score_parts, label_consecutive_parts, extract_chords
 from backend.find_chord import get_chord_name
 from frontend.assets.virtual_keyboard import VirtualKeyboard
-from music21 import chord, pitch, key, roman, analysis
+from music21 import pitch
 
 class MusicAnalyzer(tk.Tk):
     def __init__(self, simplify_chords=True, simplify_numeral=True, sound=True):
@@ -269,6 +269,8 @@ class MusicAnalyzer(tk.Tk):
         self.chord_relation_label.pack(pady=10)
         self.chord_relation_display = ttk.Label(self.chord_finder_window, text="", font=("Helvetica", 18))
         self.chord_relation_display.pack(pady=10)
+        self.chord_diatonic_display = ttk.Label(self.chord_finder_window, text="", font=("Helvetica", 18))
+        self.chord_diatonic_display.pack(pady=10)
 
         # Virtual keyboard
         self.virtual_keyboard = VirtualKeyboard(self.chord_finder_window, self.update_chord_name, self.sound)
@@ -330,6 +332,13 @@ class MusicAnalyzer(tk.Tk):
             self.persistent_key = self.key_entry.get()
         
     def update_chord_name(self, event=None, keyboard_triggered=False):
+        
+        # control or command + z clear all notes
+        if event and (event.state & 0x4 or event.state & 0x8): 
+            self.notes_entry.delete(0, 'end') 
+            self.virtual_keyboard.reset_all_keys()
+            self.virtual_keyboard.last_clicked_note = None
+        
         notes_input = self.notes_entry.get().strip()
         key_input = self.key_entry.get().strip()
         
@@ -363,10 +372,19 @@ class MusicAnalyzer(tk.Tk):
         
         self.chord_name_display.config(text=chord_name)
         if chord_relation:
-            relation_text = chord_relation
+            # split the chord_relation text into relationship and diatonic parts
+            parts = chord_relation.split('\n', 1)
+            if len(parts) == 2:
+                relationship, diatonic = parts
+            else:
+                relationship = parts[0]
+                diatonic = ""  
         else:
-            relation_text = "No key and/or chord provided"
-        self.chord_relation_display.config(text=relation_text)
+            relationship = "No key and/or chord provided"
+            diatonic = ""
+        
+        self.chord_relation_display.config(text=relationship)
+        self.chord_diatonic_display.config(text=diatonic)
         
         # reset key colors before highlighting new ones
         self.virtual_keyboard.reset_all_keys()       
