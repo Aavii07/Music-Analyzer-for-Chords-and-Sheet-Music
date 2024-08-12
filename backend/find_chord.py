@@ -3,16 +3,21 @@ import re
 
 def get_chord_name(note_set, key_name=None, simplify_numeral=True, simplify_chords=True):
     notes = []
+    # regex pattern to match notes to 2+ digits
+    invalid_note_pattern = re.compile(r'\d.*\d')
+    
     for n in note_set:
         try:
             if isinstance(n, str) and n:
+                if invalid_note_pattern.search(n):
+                    raise ValueError(f"Invalid note format with multiple numbers: {n}")
                 notes.append(pitch.Pitch(n))
             elif isinstance(n, pitch.Pitch):
                 notes.append(n)
             else:
                 raise ValueError(f"Invalid note format: {n}")
-        except Exception:
-            return "Invalid note format", None
+        except Exception as e:
+            return f"{e}", None
     
     if not notes:
         return "No valid notes provided", None
@@ -44,7 +49,14 @@ def get_chord_relationship(chord_obj, key_name, simplify_numeral):
     try:
         key_obj = key.Key(key_name)
     except Exception as e:
-        return f"Invalid key: {e}"
+        return "Invalid key"
+    
+    # extract first letter from key_name and make it uppercase
+    match = re.search(r'(\w)', key_name)
+    if match:
+        key_name_uppercase = match.group(1).upper()
+    else:
+        key_name_uppercase = None
     
 
     # key pitches as Pitch objects, normalize to be comparable
@@ -67,8 +79,8 @@ def get_chord_relationship(chord_obj, key_name, simplify_numeral):
         key_type = "minor" if key_obj.mode == "minor" else "major"
         
         if isDiatonic:
-            return f"This chord is the {roman_numeral} chord in the key of {key_name} {key_type}.\nThis chord is diatonic to the key of {key_name} {key_type}"
+            return f"This chord is the {roman_numeral} chord in the key of {key_name_uppercase}.\nThis chord is diatonic to the key of {key_name_uppercase} {key_type}"
         else:
-            return f"This chord is the {roman_numeral} chord in the key of {key_name} {key_type}.\nThis chord is not diatonic to the key of {key_name} {key_type}"
+            return f"This chord is the {roman_numeral} chord in the key of {key_name_uppercase}.\nThis chord is not diatonic to the key of {key_name_uppercase} {key_type}"
     except Exception as e:
         return f"Error calculating chord relationship: {e}"

@@ -6,17 +6,21 @@ from backend.find_chord import get_chord_name
 from frontend.assets.virtual_keyboard import VirtualKeyboard
 from music21 import pitch
 import sv_ttk
+import shelve
 
 class MusicAnalyzer(tk.Tk):
     def __init__(self, simplify_chords=True, simplify_numeral=True, sound=True):
         super().__init__()
-        sv_ttk.set_theme("dark")
+        self.load_preferences()
+        
+        sv_ttk.set_theme("dark" if self.dark_mode_var.get() else "light")
         self.title("Music Analyzer")
         self.geometry("1200x660")
         self.chord_finder_window = None
         self.simplify_chords = simplify_chords
         self.simplify_numeral = simplify_numeral
         self.sound = sound
+        self.dark_mode_var = tk.BooleanVar(value=self.dark_mode_var.get())
         self.enharmonics_var = tk.BooleanVar(value=True)
         self.numeral_var = tk.BooleanVar(value=True)
         self.sound_var = tk.BooleanVar(value=True)
@@ -24,9 +28,19 @@ class MusicAnalyzer(tk.Tk):
         self.persistent_key = ""
         self.music_data = []
         self.create_widgets()
-        self.bind('<Command-n>', self.open_chord_finder) # Windows and MacOS
-        self.bind('<Control-n>', self.open_chord_finder) # MacOS
+        self.bind('<Command-n>', self.open_chord_finder)
+        self.bind('<Control-n>', self.open_chord_finder)
+        self.bind_all('<Command-z>', self.clear_notes)
+        self.bind_all('<Control-z>', self.clear_notes)
+        
+    def load_preferences(self):
+        with shelve.open('preferences') as db:
+            self.dark_mode_var = tk.BooleanVar(value=db.get('dark_mode', True))
 
+    def save_preferences(self):
+        with shelve.open('preferences', writeback=True) as db:
+            db['dark_mode'] = self.dark_mode_var.get()
+    
     def create_widgets(self):
         self.header_frame = ttk.Frame(self)
         self.header_frame.pack(fill=tk.X, pady=10)
@@ -111,6 +125,17 @@ class MusicAnalyzer(tk.Tk):
         )
         self.toggle_button.pack(side=tk.LEFT, padx=10, pady=10)
         
+        # darkmode toggle
+        self.toggle_frame = ttk.Frame(self)
+        self.toggle_frame.pack(side=tk.RIGHT, padx=10, pady=10)
+        self.dark_mode_toggle = ttk.Checkbutton(
+            self.toggle_frame,
+            text="Dark Mode",
+            command=self.toggle_dark_mode,
+            variable=self.dark_mode_var
+        )
+        self.dark_mode_toggle.pack(side=tk.RIGHT, padx=10, pady=10)
+        
         # dropdown
         self.filter_options = ["By Instrument", "By Measure and Beat"]
         self.filter_var = tk.StringVar(value=self.filter_options[0])
@@ -129,7 +154,20 @@ class MusicAnalyzer(tk.Tk):
         self.table_frame = ttk.Frame(self)
         self.table_frame.pack(side=tk.RIGHT, expand=True, padx=10, pady=10)
 
+    def toggle_dark_mode(self):
+        dark_mode_enabled = self.dark_mode_var.get()
+        if dark_mode_enabled:
+            sv_ttk.set_theme("dark")
+        else:
+            sv_ttk.set_theme("light")
+        self.save_preferences()
+        
+        # force UI refresh
+        self.update_idletasks()
+        for widget in self.winfo_children():
+            widget.update_idletasks()
 
+        
     def load_file(self):
         file_path = filedialog.askopenfilename(
             filetypes=[("MusicXML Files", "*.musicxml"), ("All Files", "*.*")]
@@ -254,7 +292,7 @@ class MusicAnalyzer(tk.Tk):
         self.notes_entry.bind("<KeyRelease>", self.update_chord_name)
 
         # Key input field
-        self.key_label = ttk.Label(self.chord_finder_window, text="Enter Key (e.g., C):")
+        self.key_label = ttk.Label(self.chord_finder_window, text="Enter a Key (e.g., C):")
         self.key_label.pack(pady=10)
         self.key_entry = ttk.Entry(self.chord_finder_window)
         self.key_entry.pack(pady=10, padx=20, fill=tk.X)
@@ -290,15 +328,15 @@ class MusicAnalyzer(tk.Tk):
         # Virtual keyboard
         self.virtual_keyboard = VirtualKeyboard(self.chord_finder_window, self.update_chord_name, self.sound)
         self.virtual_keyboard.pack(pady=20)
-
-        # Enharmonics toggle
-        self.toggle_enharmonics_button = ttk.Checkbutton(
+        
+        # Sound toggle
+        self.toggle_sound_button = ttk.Checkbutton(
             self.chord_finder_window, 
-            text="Enharmonics Simplifier (recommended on)", 
-            command=self.toggle_enharmonics,
-            variable=self.enharmonics_var
+            text="Play Key on Click", 
+            command=self.toggle_sound,
+            variable=self.sound_var
         )
-        self.toggle_enharmonics_button.pack(anchor='w', padx=30, pady=5, fill=tk.X)
+        self.toggle_sound_button.pack(anchor='w', padx=30, pady=5, fill=tk.X)
         
         # Numeral toggle
         self.toggle_numeral_button = ttk.Checkbutton(
@@ -309,14 +347,14 @@ class MusicAnalyzer(tk.Tk):
         )
         self.toggle_numeral_button.pack(anchor='w', padx=30, pady=5, fill=tk.X)
         
-        # Sound toggle
-        self.toggle_sound_button = ttk.Checkbutton(
+        # Enharmonics toggle
+        self.toggle_enharmonics_button = ttk.Checkbutton(
             self.chord_finder_window, 
-            text="Play Key on Click", 
-            command=self.toggle_sound,
-            variable=self.sound_var
+            text="Enharmonics Simplifier (recommended on)", 
+            command=self.toggle_enharmonics,
+            variable=self.enharmonics_var
         )
-        self.toggle_sound_button.pack(anchor='w', padx=30, pady=5, fill=tk.X)
+        self.toggle_enharmonics_button.pack(anchor='w', padx=30, pady=5, fill=tk.X)
         
         self.chord_finder_window.protocol("WM_DELETE_WINDOW", self.on_chord_finder_close)
     
@@ -345,14 +383,15 @@ class MusicAnalyzer(tk.Tk):
             self.persistent_key = "" # reset persistant key on unchecked box
         else:
             self.persistent_key = self.key_entry.get()
-        
-    def update_chord_name(self, event=None, keyboard_triggered=False):
-        
-        # control or command + z clear all notes
-        if event and (event.state & 0x4 or event.state & 0x8): 
-            self.notes_entry.delete(0, 'end') 
+    
+    def clear_notes(self, event=None):
+        if self.chord_finder_window and self.chord_finder_window.winfo_exists():
+            self.notes_entry.delete(0, 'end')
             self.virtual_keyboard.reset_all_keys()
             self.virtual_keyboard.last_clicked_note = None
+            self.update_chord_name()
+        
+    def update_chord_name(self, event=None, keyboard_triggered=False):
         
         notes_input = self.notes_entry.get().strip()
         key_input = self.key_entry.get().strip()
@@ -395,7 +434,7 @@ class MusicAnalyzer(tk.Tk):
                 relationship = parts[0]
                 diatonic = ""  
         else:
-            relationship = "No key and/or chord provided"
+            relationship = "No valid key and/or chord provided"
             diatonic = ""
         
         self.chord_relation_display.config(text=relationship)
@@ -418,9 +457,20 @@ class MusicAnalyzer(tk.Tk):
             self.virtual_keyboard.highlight_key(note)
             
 def normalize_note(note):
-    upperCaseNote = re.sub(r'^([a-z])', lambda x: x.group(1).upper(), note) # music21 only recognizes uppercase notes
+    # music21 needs capitalized note names
+    upperCaseNote = re.sub(r'^([a-z])', lambda x: x.group(1).upper(), note)
+    
+    # move octave number to end of note so piano can display it 
+    upperCaseNote = re.sub(r'(\d*)$', r'\1', upperCaseNote)
+    existing_number = re.search(r'(\d+)', note)
+    if existing_number:
+        upperCaseNote = upperCaseNote.replace(existing_number.group(), '')
+        upperCaseNote = f"{upperCaseNote}{existing_number.group()}" 
+
+    # music21 defaults to 4th octave if no number
     if not re.search(r'\d$', upperCaseNote):
-        upperCaseNote += '4' # music21 defaults to 4th octave if no exact note specified
+        upperCaseNote += '4'
+    
     return upperCaseNote
 
 # get any shift clicked equivalent notes
