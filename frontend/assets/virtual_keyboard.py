@@ -42,11 +42,18 @@ class VirtualKeyboard(tk.Frame):
         black_key_width = 15
         black_key_height = 60
         black_keys_offset = 8
+        border_width = 1
         
         # create white keys
         for i in range(52):
             x = i * white_key_width
-            key_id = self.canvas.create_rectangle(x, 0, x + white_key_width, white_key_height, fill='white', outline='black')
+            
+            key_id = self.canvas.create_rectangle(
+                x, 0, x + white_key_width, white_key_height, 
+                fill='white', 
+                outline = 'grey',
+                width = border_width)
+            
             self.keys[f'Wh{i + 1}'] = key_id
             self.key_click_state[key_id] = 0
             self.canvas.tag_bind(key_id, "<Button-1>", self.key_click_handler)
@@ -55,7 +62,14 @@ class VirtualKeyboard(tk.Frame):
         for i in range(51):
             if i not in (1, 4, 8, 11, 15, 18, 22, 25, 29, 32, 36, 39, 43, 46, 50):  # skip certain black keys
                 x = (i + 1) * white_key_width - black_keys_offset
-                key_id = self.canvas.create_rectangle(x, 0, x + black_key_width, black_key_height, fill='black', outline='black', tags='black')
+                
+                key_id = self.canvas.create_rectangle(
+                    x, 0, x + black_key_width, 
+                    black_key_height, fill='black', 
+                    outline = 'black', 
+                    tags='black',
+                    width = border_width)
+                
                 self.keys[f'Bl{i + 1}'] = key_id
                 self.key_click_state[key_id] = 0
                 self.canvas.tag_bind(key_id, "<Button-1>", self.key_click_handler)
@@ -110,8 +124,8 @@ class VirtualKeyboard(tk.Frame):
             # Octave 7
             'B#6': 'Wh45', 'D7': 'Wh46', 'E7': 'Wh47', 'F7': 'Wh48', 'G7': 'Wh49', 'A7': 'Wh50', 'B7': 'Wh51',
             'C#7': 'Bl45', 'D#7': 'Bl46', 'E#7': 'Wh48', 'F#7': 'Bl48', 'G#7': 'Bl49', 'A#7': 'Bl50', 'C8': 'Wh52',
-            'D-7': 'Bl45', 'E-7': 'Bl46', 'F-7': 'Wh47', 'G-7': 'Bl48', 'A-7': 'Bl49', 'B-7': 'B50', 'C-7': 'Wh44',
-            'Db7': 'Bl45', 'Eb7': 'Bl46', 'Fb7': 'Wh47', 'Gb7': 'Bl48', 'Ab7': 'Bl49', 'Bb7': 'B50', 'Cb7': 'Wh44', 
+            'D-7': 'Bl45', 'E-7': 'Bl46', 'F-7': 'Wh47', 'G-7': 'Bl48', 'A-7': 'Bl49', 'B-7': 'Bl50', 'C-7': 'Wh44',
+            'Db7': 'Bl45', 'Eb7': 'Bl46', 'Fb7': 'Wh47', 'Gb7': 'Bl48', 'Ab7': 'Bl49', 'Bb7': 'Bl50', 'Cb7': 'Wh44', 
             
             # Octave 8
             'B#7': 'Wh52',

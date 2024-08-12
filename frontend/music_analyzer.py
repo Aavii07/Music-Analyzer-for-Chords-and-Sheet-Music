@@ -5,10 +5,12 @@ from backend.chord_extractor import get_score_parts, label_consecutive_parts, ex
 from backend.find_chord import get_chord_name
 from frontend.assets.virtual_keyboard import VirtualKeyboard
 from music21 import pitch
+import sv_ttk
 
 class MusicAnalyzer(tk.Tk):
     def __init__(self, simplify_chords=True, simplify_numeral=True, sound=True):
         super().__init__()
+        sv_ttk.set_theme("dark")
         self.title("Music Analyzer")
         self.geometry("1200x660")
         self.chord_finder_window = None
@@ -224,12 +226,25 @@ class MusicAnalyzer(tk.Tk):
         self.chord_finder_window = tk.Toplevel(self)
         self.chord_finder_window.title("Chord Finder")
         self.chord_finder_window.geometry("1350x700")
+        
+        # Calculate new window position by getting center relative to main window
+        main_window_x = self.winfo_x()
+        main_window_y = self.winfo_y()
+        main_window_width = self.winfo_width()
+        main_window_height = self.winfo_height()
+
+        new_window_width = 1350
+        new_window_height = 700
+        new_window_x = main_window_x + (main_window_width - new_window_width) // 2
+        new_window_y = main_window_y + (main_window_height - new_window_height) // 2
+        self.chord_finder_window.geometry(f"{new_window_width}x{new_window_height}+{new_window_x}+{new_window_y}")
 
         # Notes input field
         self.notes_label = ttk.Label(self.chord_finder_window, text="Enter Notes (comma-separated):")
         self.notes_label.pack(pady=10)
         self.notes_entry = ttk.Entry(self.chord_finder_window)
         self.notes_entry.pack(pady=10, padx=20, fill=tk.X)
+        self.notes_entry.focus_set()
         
         if notes: # insert notes if exist
             self.notes_entry.insert(0, notes)
