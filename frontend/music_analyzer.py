@@ -9,7 +9,7 @@ import sv_ttk
 import shelve
 
 class MusicAnalyzer(tk.Tk):
-    def __init__(self, simplify_chords=True, simplify_numeral=True, sound=True, free_play=False):
+    def __init__(self, simplify_chords=True, simplify_numeral=True, sound=True, sustain=True, free_play=False):
         super().__init__()
         self.load_preferences()
         
@@ -21,11 +21,13 @@ class MusicAnalyzer(tk.Tk):
         self.simplify_numeral = simplify_numeral
         self.sound = sound
         self.free_play = free_play
+        self.sustain = sustain
         self.dark_mode_var = tk.BooleanVar(value=self.dark_mode_var.get())
         self.enharmonics_var = tk.BooleanVar(value=True)
         self.numeral_var = tk.BooleanVar(value=True)
         self.sound_var = tk.BooleanVar(value=True)
         self.free_play_var = tk.BooleanVar(value=False)
+        self.sustain_var = tk.BooleanVar(value=True)
         self.persistent_key_var = tk.BooleanVar(value=False)
         self.persistent_key = ""
         self.music_data = []
@@ -328,12 +330,46 @@ class MusicAnalyzer(tk.Tk):
         self.chord_diatonic_display.pack(pady=10)
 
         # Virtual keyboard
-        self.virtual_keyboard = VirtualKeyboard(self.chord_finder_window, self.update_chord_name, self.sound, self.free_play)
+        self.virtual_keyboard = VirtualKeyboard(self.chord_finder_window, self.update_chord_name, self.sound, self.sustain, self.free_play)
         self.virtual_keyboard.pack(pady=20)
+        
+        self.music_frame = ttk.Frame(self.chord_finder_window)
+        self.music_frame.pack(anchor='w', padx=10, pady=10)
+        
+        # Sound toggle
+        self.toggle_sound_button = ttk.Checkbutton(
+            self.music_frame, 
+            text="Play Key on Click", 
+            command=self.toggle_sound,
+            variable=self.sound_var
+        )
+        self.toggle_sound_button.pack(side=tk.LEFT, padx=30, pady=5, fill=tk.X)
+        
+        # Sustain toggle
+        self.sustain_toggle = ttk.Checkbutton(
+            self.music_frame, 
+            text="Sustain Pedal", 
+            command=self.toggle_sustain,
+            variable=self.sustain_var
+        )
+        self.sustain_toggle.pack(side=tk.LEFT, padx=30, pady=5, fill=tk.X)
+        
+        # Free play toggle
+        # Note that this settings override what is chosen in the sound toggle
+        self.free_play_button = ttk.Checkbutton(
+            self.music_frame, 
+            text="Keyboard Freeplay", 
+            command=self.toggle_free_play,
+            variable=self.free_play_var
+        )
+        self.free_play_button.pack(side=tk.LEFT, padx=30, pady=5, fill=tk.X)
+        
+        self.analysis_frame = ttk.Frame(self.chord_finder_window)
+        self.analysis_frame.pack(anchor='w', padx=10, pady=10)
         
         # Numeral toggle
         self.toggle_numeral_button = ttk.Checkbutton(
-            self.chord_finder_window, 
+            self.analysis_frame, 
             text="Simplify Chord Symbols (recommended on)", 
             command=self.toggle_numeral,
             variable=self.numeral_var
@@ -342,31 +378,12 @@ class MusicAnalyzer(tk.Tk):
         
         # Enharmonics toggle
         self.toggle_enharmonics_button = ttk.Checkbutton(
-            self.chord_finder_window, 
+            self.analysis_frame, 
             text="Enharmonics Simplifier (recommended on)", 
             command=self.toggle_enharmonics,
             variable=self.enharmonics_var
         )
         self.toggle_enharmonics_button.pack(side=tk.LEFT, padx=30, pady=5, fill=tk.X)
-        
-        # Sound toggle
-        self.toggle_sound_button = ttk.Checkbutton(
-            self.chord_finder_window, 
-            text="Play Key on Click", 
-            command=self.toggle_sound,
-            variable=self.sound_var
-        )
-        self.toggle_sound_button.pack(side=tk.LEFT, padx=30, pady=5, fill=tk.X)
-        
-        # Free play toggle
-        # Note that this settings override what is chosen in the sound toggle
-        self.free_play_button = ttk.Checkbutton(
-            self.chord_finder_window, 
-            text="Keyboard Freeplay", 
-            command=self.toggle_free_play,
-            variable=self.free_play_var
-        )
-        self.free_play_button.pack(side=tk.LEFT, padx=30, pady=5, fill=tk.X)
         
         self.chord_finder_window.protocol("WM_DELETE_WINDOW", self.on_chord_finder_close)
     
@@ -389,6 +406,10 @@ class MusicAnalyzer(tk.Tk):
     def toggle_sound(self):
         self.sound = not self.sound
         self.virtual_keyboard.toggle_sound(self.sound)
+    
+    def toggle_sustain(self):
+        self.sustain = not self.sustain
+        self.virtual_keyboard.toggle_sustain(self.sustain)
     
     def toggle_free_play(self):
         self.free_play = not self.free_play

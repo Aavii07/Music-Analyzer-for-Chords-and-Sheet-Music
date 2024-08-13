@@ -2,7 +2,7 @@ import tkinter as tk
 import pygame
 
 class VirtualKeyboard(tk.Frame):
-    def __init__(self, parent, update_chord_callback, sound, free_play, *args, **kwargs):
+    def __init__(self, parent, update_chord_callback, sound, sustain, free_play, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         self.canvas = tk.Canvas(self, bg='white', height=98, width=1298)
         self.canvas.pack(fill=tk.BOTH, expand=True)
@@ -12,10 +12,11 @@ class VirtualKeyboard(tk.Frame):
         self.last_clicked_note = None
         self.update_chord_callback = update_chord_callback # use to avoid circular dependency
         self.sound = sound
+        self.sustain = sustain
         self.free_play = free_play
         self.create_keys()
         pygame.mixer.init()
-        self.current_sound = None
+        self.current_sounds = []
         self.note_sounds = self.load_note_sounds()
     
     def load_note_sounds(self):
@@ -28,13 +29,21 @@ class VirtualKeyboard(tk.Frame):
         return note_sounds
 
     def play_note_sound(self, note):
-        if self.current_sound:
-            self.current_sound.stop()
-        
         sound = self.note_sounds.get(note)
-        if sound:
-            self.current_sound = sound
-            sound.play()
+        if not sound:
+            return
+        
+        if len(self.current_sounds) >= 8:  # pygame only has 8 sound channels
+            self.current_sounds[0].stop()
+            self.current_sounds.pop(0)
+        
+        self.current_sounds.append(sound)
+        sound.play()
+        
+        if not self.sustain:
+            for s in self.current_sounds[:-1]:
+                s.stop()
+            self.current_sounds = [sound]
 
     def create_keys(self):
         self.keys = {}
@@ -189,6 +198,14 @@ class VirtualKeyboard(tk.Frame):
     
     def toggle_sound(self, sound):
         self.sound = sound
+        
+    def toggle_sustain(self, sustain):
+        self.sustain = sustain
+        
+        # simulate letting go of sustain pedal, only playing current note
+        if (self.sustain == False):
+            for s in self.current_sounds[:-1]:
+                s.stop()
         
     def toggle_free_play(self, free_play):
         self.free_play = free_play
