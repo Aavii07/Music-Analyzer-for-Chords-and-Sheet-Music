@@ -9,7 +9,7 @@ import sv_ttk
 import shelve
 
 class MusicAnalyzer(tk.Tk):
-    def __init__(self, simplify_chords=True, simplify_numeral=True, sound=True):
+    def __init__(self, simplify_chords=True, simplify_numeral=True, sound=True, free_play=False):
         super().__init__()
         self.load_preferences()
         
@@ -20,10 +20,12 @@ class MusicAnalyzer(tk.Tk):
         self.simplify_chords = simplify_chords
         self.simplify_numeral = simplify_numeral
         self.sound = sound
+        self.free_play = free_play
         self.dark_mode_var = tk.BooleanVar(value=self.dark_mode_var.get())
         self.enharmonics_var = tk.BooleanVar(value=True)
         self.numeral_var = tk.BooleanVar(value=True)
         self.sound_var = tk.BooleanVar(value=True)
+        self.free_play_var = tk.BooleanVar(value=False)
         self.persistent_key_var = tk.BooleanVar(value=False)
         self.persistent_key = ""
         self.music_data = []
@@ -326,17 +328,8 @@ class MusicAnalyzer(tk.Tk):
         self.chord_diatonic_display.pack(pady=10)
 
         # Virtual keyboard
-        self.virtual_keyboard = VirtualKeyboard(self.chord_finder_window, self.update_chord_name, self.sound)
+        self.virtual_keyboard = VirtualKeyboard(self.chord_finder_window, self.update_chord_name, self.sound, self.free_play)
         self.virtual_keyboard.pack(pady=20)
-        
-        # Sound toggle
-        self.toggle_sound_button = ttk.Checkbutton(
-            self.chord_finder_window, 
-            text="Play Key on Click", 
-            command=self.toggle_sound,
-            variable=self.sound_var
-        )
-        self.toggle_sound_button.pack(anchor='w', padx=30, pady=5, fill=tk.X)
         
         # Numeral toggle
         self.toggle_numeral_button = ttk.Checkbutton(
@@ -345,7 +338,7 @@ class MusicAnalyzer(tk.Tk):
             command=self.toggle_numeral,
             variable=self.numeral_var
         )
-        self.toggle_numeral_button.pack(anchor='w', padx=30, pady=5, fill=tk.X)
+        self.toggle_numeral_button.pack(side=tk.LEFT, padx=30, pady=5, fill=tk.X)
         
         # Enharmonics toggle
         self.toggle_enharmonics_button = ttk.Checkbutton(
@@ -354,7 +347,26 @@ class MusicAnalyzer(tk.Tk):
             command=self.toggle_enharmonics,
             variable=self.enharmonics_var
         )
-        self.toggle_enharmonics_button.pack(anchor='w', padx=30, pady=5, fill=tk.X)
+        self.toggle_enharmonics_button.pack(side=tk.LEFT, padx=30, pady=5, fill=tk.X)
+        
+        # Sound toggle
+        self.toggle_sound_button = ttk.Checkbutton(
+            self.chord_finder_window, 
+            text="Play Key on Click", 
+            command=self.toggle_sound,
+            variable=self.sound_var
+        )
+        self.toggle_sound_button.pack(side=tk.LEFT, padx=30, pady=5, fill=tk.X)
+        
+        # Free play toggle
+        # Note that this settings override what is chosen in the sound toggle
+        self.free_play_button = ttk.Checkbutton(
+            self.chord_finder_window, 
+            text="Keyboard Freeplay", 
+            command=self.toggle_free_play,
+            variable=self.free_play_var
+        )
+        self.free_play_button.pack(side=tk.LEFT, padx=30, pady=5, fill=tk.X)
         
         self.chord_finder_window.protocol("WM_DELETE_WINDOW", self.on_chord_finder_close)
     
@@ -378,6 +390,10 @@ class MusicAnalyzer(tk.Tk):
         self.sound = not self.sound
         self.virtual_keyboard.toggle_sound(self.sound)
     
+    def toggle_free_play(self):
+        self.free_play = not self.free_play
+        self.virtual_keyboard.toggle_free_play(self.free_play)
+    
     def persist_key(self):
         if not self.persistent_key_var.get():
             self.persistent_key = "" # reset persistant key on unchecked box
@@ -397,7 +413,7 @@ class MusicAnalyzer(tk.Tk):
         key_input = self.key_entry.get().strip()
         
         last_clicked_note = self.virtual_keyboard.last_clicked_note
-        if keyboard_triggered:
+        if keyboard_triggered and not self.free_play:
             last_clicked_note = self.virtual_keyboard.last_clicked_note
             notes_list = [note.strip() for note in notes_input.split(',') if note.strip()]
             
@@ -452,7 +468,6 @@ class MusicAnalyzer(tk.Tk):
         # simplify the pitch list (for notes with 2+ accidentals)
         simplified_notes = [str(p.simplifyEnharmonic(mostCommon=True)) for p in pitch_list]
 
-        # highlight the new keys
         for note in simplified_notes:
             self.virtual_keyboard.highlight_key(note)
             
@@ -476,25 +491,31 @@ def normalize_note(note):
 # get any shift clicked equivalent notes
 def get_equivalent_notes(note):
     equivalent_notes = []
+    
+    possible_spellings = pitch.Pitch(note).getAllCommonEnharmonics(alterLimit=4)
+    
+    # edge cases not covered by getAllCommonEnharmonics
     octave = re.search(r'\d+', note).group(0)
-    
     switch_dict = {
-        ('E#' + octave, 'F' + octave): ['F' + octave, 'E#' + octave],
-        ('E' + octave, 'F-' + octave, 'Fb' + octave): ['F-' + octave, 'Fb' + octave, 'E' + octave],
-        ('B#' + octave,): ['C' + str(int(octave) + 1)],
-        ('C' + octave,): ['B#' + str(int(octave) - 1)],
-        ('B' + octave,): ['C-' + str(int(octave) + 1), 'Cb' + str(int(octave) + 1)],
-        ('Cb' + octave, 'C-' + octave): ['B' + str(int(octave) - 1)],
-        ('F#' + octave, 'G-' + octave, 'Gb' + octave): ['F#' + octave, 'Gb' + octave, 'G-' + octave],
-        ('G#' + octave, 'Ab' + octave, 'A-' + octave): ['G#' + octave, 'Ab' + octave, 'A-' + octave],
-        ('A#' + octave, 'B-' + octave, 'Bb' + octave): ['A#' + octave, 'B-' + octave, 'Bb' + octave],
-        ('C#' + octave, 'D-' + octave, 'Db' + octave): ['C#' + octave, 'D-' + octave, 'Db' + octave],
-        ('D#' + octave, 'E-' + octave, 'Eb' + octave): ['D#' + octave, 'E-' + octave, 'Eb' + octave],
+        'C####' + octave: ['F-' + octave],
+        'G####' + str(int(octave) - 1): ['C-' + octave],
+        'E----' + str(int(octave) + 1): ['B#' + octave],
+        'A----' + octave: ['E#' + octave],
+        'Gb' + octave: ['G-' + octave, 'F#' + octave],
+        'Ab' + octave: ['A-' + octave, 'G#' + octave],
+        'Bb' + octave: ['B-' + octave, 'A#' + octave],
+        'Eb' + octave: ['E-' + octave, 'D#' + octave],
+        'Db' + octave: ['D-' + octave, 'C#' + octave],
+        'Cb' + octave: ['C-' + octave],
+        'Cb' + str(int(octave) + 1): ['B' + octave],
+        'Fb' + octave: ['F-' + octave, 'E' + octave],
     }
-    
-    for keys, equivalents in switch_dict.items():
-        if note in keys:
-            equivalent_notes.extend(equivalents)
-            break
 
+    for key, equivalent in switch_dict.items():
+        if note in equivalent:
+            equivalent_notes.append(key)
+    
+    for spelling in possible_spellings:
+        equivalent_notes.append(spelling.nameWithOctave)
+    
     return equivalent_notes

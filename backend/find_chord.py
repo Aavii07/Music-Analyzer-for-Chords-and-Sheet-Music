@@ -1,4 +1,4 @@
-from music21 import chord, pitch, key, roman, analysis
+from music21 import chord, pitch, key, roman
 import re
 
 def get_chord_name(note_set, key_name=None, simplify_numeral=True, simplify_chords=True):
@@ -27,8 +27,11 @@ def get_chord_name(note_set, key_name=None, simplify_numeral=True, simplify_chor
         return "Chord cannot exceed 16 notes", None
               
     if simplify_chords:
-        es = analysis.enharmonics.EnharmonicSimplifier(notes)
-        notes= es.bestPitches()
+        pitch_list = [] 
+        for note in notes:
+            p = pitch.Pitch(note)
+            pitch_list.append(p)
+        notes = [str(p.simplifyEnharmonic(mostCommon=True)) for p in pitch_list] 
 
     c = chord.Chord(notes)
     chord_name = c.pitchedCommonName

@@ -2,7 +2,7 @@ import tkinter as tk
 import pygame
 
 class VirtualKeyboard(tk.Frame):
-    def __init__(self, parent, update_chord_callback, sound, *args, **kwargs):
+    def __init__(self, parent, update_chord_callback, sound, free_play, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         self.canvas = tk.Canvas(self, bg='white', height=98, width=1298)
         self.canvas.pack(fill=tk.BOTH, expand=True)
@@ -12,6 +12,7 @@ class VirtualKeyboard(tk.Frame):
         self.last_clicked_note = None
         self.update_chord_callback = update_chord_callback # use to avoid circular dependency
         self.sound = sound
+        self.free_play = free_play
         self.create_keys()
         pygame.mixer.init()
         self.current_sound = None
@@ -177,14 +178,20 @@ class VirtualKeyboard(tk.Frame):
                 
                 self.last_clicked_note = note
                 
-                key_color = self.canvas.itemcget(key_id, 'fill')
-                if self.sound and key_color != 'yellow':
+                if self.free_play:
                     self.play_note_sound(note)
+                else:
+                    key_color = self.canvas.itemcget(key_id, 'fill')
+                    if self.sound and key_color != 'yellow':
+                        self.play_note_sound(note)
                     
-                self.update_chord_callback(keyboard_triggered=True)
+                    self.update_chord_callback(keyboard_triggered=True)
     
     def toggle_sound(self, sound):
         self.sound = sound
+        
+    def toggle_free_play(self, free_play):
+        self.free_play = free_play
     
 
             
