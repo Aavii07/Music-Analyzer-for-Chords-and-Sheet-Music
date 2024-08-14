@@ -1,7 +1,6 @@
 
 import re
 from tkinter import ttk, filedialog # need ttk for treeview
-import sv_ttk # using theming for ttk treeview
 from backend.chord_extractor import get_score_parts, label_consecutive_parts, extract_chords
 from backend.find_chord import get_chord_name
 from frontend.assets.virtual_keyboard import VirtualKeyboard
@@ -15,9 +14,8 @@ class MusicAnalyzer(ctk.CTk):
         self.load_preferences()
         
         ctk.set_appearance_mode("dark" if self.dark_mode_var.get() else "light")
-        sv_ttk.set_theme("dark" if self.dark_mode_var.get() else "light")
         self.title("Music Analyzer")
-        self.geometry("1200x660")
+        self.geometry(f'1200x660+100+50')
         self.chord_finder_window = None
         self.simplify_chords = simplify_chords
         self.simplify_numeral = simplify_numeral
@@ -41,7 +39,7 @@ class MusicAnalyzer(ctk.CTk):
         
     def load_preferences(self):
         with shelve.open('preferences') as db:
-            self.dark_mode_var = ctk.BooleanVar(value=db.get('dark_mode', True))
+            self.dark_mode_var = ctk.BooleanVar(value=db.get('dark_mode', False))
 
     def save_preferences(self):
         with shelve.open('preferences', writeback=True) as db:
@@ -100,8 +98,8 @@ class MusicAnalyzer(ctk.CTk):
         self.chord_entry.grid(row=1, column=1, padx=25)
         self.chord_entry.bind("<KeyRelease>", self.apply_filters)
 
-        frame = ctk.CTkFrame(self, fg_color = self._fg_color)
-        frame.pack(padx=20, fill=ctk.BOTH, expand=True)
+        frame = ctk.CTkFrame(self)
+        frame.pack(padx=10, fill=ctk.BOTH, expand=True)
 
         # table
         self.tree = ttk.Treeview(frame, columns=("Part", "Measure", "Beat", "Chord Name", "Notes"), show="headings")
@@ -173,10 +171,8 @@ class MusicAnalyzer(ctk.CTk):
         dark_mode_enabled = self.dark_mode_var.get()
         if dark_mode_enabled:
             ctk.set_appearance_mode("dark")
-            sv_ttk.set_theme("dark")
         else:
             ctk.set_appearance_mode("light")
-            sv_ttk.set_theme("light")
         self.save_preferences()
         
         # force UI refresh
@@ -280,7 +276,7 @@ class MusicAnalyzer(ctk.CTk):
         
         self.chord_finder_window = ctk.CTkToplevel(self)
         self.chord_finder_window.title("Chord Finder")
-        self.chord_finder_window.geometry('1350x750')
+        self.chord_finder_window.geometry('1350x750+50+0')
         
         # chord finder is a modal window, and minimizing it also minimizes main window
         self.chord_finder_window.transient(self)
