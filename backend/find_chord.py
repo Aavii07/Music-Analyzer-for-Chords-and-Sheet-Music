@@ -38,7 +38,7 @@ def get_chord_name(note_set, key_name=None, simplify_numeral=True, simplify_chor
     
     # music21 always gets scales wrong for some reason
     if re.search(r'\bscale\b', chord_name, re.IGNORECASE):
-        chord_name = "Scales unsupported"
+          return "Scales unsupported", None
     
     # if key, call function to calculate chord relationship
     if key_name:
