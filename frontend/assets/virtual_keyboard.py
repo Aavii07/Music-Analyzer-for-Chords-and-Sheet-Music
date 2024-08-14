@@ -17,6 +17,7 @@ class VirtualKeyboard(tk.Frame):
         self.create_keys()
         pygame.mixer.init()
         self.current_sounds = []
+        self.current_sound = None
         self.note_sounds = self.load_note_sounds()
     
     def load_note_sounds(self):
@@ -33,17 +34,29 @@ class VirtualKeyboard(tk.Frame):
         if not sound:
             return
         
-        if len(self.current_sounds) >= 8:  # pygame only has 8 sound channels
-            self.current_sounds[0].stop()
-            self.current_sounds.pop(0)
+        if self.sustain:
+            # prevent sound layering with same notes
+            for current_sound in self.current_sounds:
+                if current_sound.get_raw() == sound.get_raw():
+                    current_sound.stop()
+                    self.current_sounds.remove(current_sound)
+                    break
+
+            if len(self.current_sounds) >= 8:  # pygame only has 8 sound channels
+                old_sound = self.current_sounds.pop(0)
+                old_sound.stop()
+
+            self.current_sounds.append(sound)
+            sound.play()
         
-        self.current_sounds.append(sound)
-        sound.play()
-        
-        if not self.sustain:
-            for s in self.current_sounds[:-1]:
-                s.stop()
-            self.current_sounds = [sound]
+        else:
+            if self.current_sound:
+                self.current_sound.stop()
+
+            sound = self.note_sounds.get(note)
+            if sound:
+                self.current_sound = sound
+                sound.play()
 
     def create_keys(self):
         self.keys = {}
@@ -202,7 +215,7 @@ class VirtualKeyboard(tk.Frame):
     def toggle_sustain(self, sustain):
         self.sustain = sustain
         
-        # simulate letting go of sustain pedal, only playing current note
+        # simulate letting go of sustain pedal, most recent note still plays to be less jarring
         if (self.sustain == False):
             for s in self.current_sounds[:-1]:
                 s.stop()
