@@ -1,10 +1,9 @@
-from music21 import chord, pitch, key, roman
+from music21 import chord, pitch, key, roman, analysis
 import re
 
 def get_chord_name(note_set, key_name=None, simplify_numeral=True, simplify_chords=True):
     notes = []
-    # regex pattern to match notes to 2+ digits
-    invalid_note_pattern = re.compile(r'\d.*\d')
+    invalid_note_pattern = re.compile(r'\d.*\d')  
     
     for n in note_set:
         try:
@@ -30,8 +29,12 @@ def get_chord_name(note_set, key_name=None, simplify_numeral=True, simplify_chor
         pitch_list = [] 
         for note in notes:
             p = pitch.Pitch(note)
-            pitch_list.append(p)
-        notes = [str(p.simplifyEnharmonic(mostCommon=True)) for p in pitch_list] 
+            pitch_list.append(p) 
+
+        # simplify the pitch list (for notes with 2+ accidentals)
+        simplified_notes = [str(p.simplifyEnharmonic(mostCommon=True)) for p in pitch_list]
+        es = analysis.enharmonics.EnharmonicSimplifier(simplified_notes)
+        notes= es.bestPitches()
 
     c = chord.Chord(notes)
     chord_name = c.pitchedCommonName

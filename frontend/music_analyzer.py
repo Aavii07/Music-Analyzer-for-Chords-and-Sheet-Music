@@ -1,18 +1,20 @@
-import tkinter as tk
+
 import re
-from tkinter import ttk, filedialog
+from tkinter import ttk, filedialog # need ttk for treeview
+import sv_ttk # using theming for ttk treeview
 from backend.chord_extractor import get_score_parts, label_consecutive_parts, extract_chords
 from backend.find_chord import get_chord_name
 from frontend.assets.virtual_keyboard import VirtualKeyboard
 from music21 import pitch
-import sv_ttk
 import shelve
+import customtkinter as ctk
 
-class MusicAnalyzer(tk.Tk):
+class MusicAnalyzer(ctk.CTk):
     def __init__(self, simplify_chords=True, simplify_numeral=True, sound=True, sustain=True, free_play=False):
         super().__init__()
         self.load_preferences()
         
+        ctk.set_appearance_mode("dark" if self.dark_mode_var.get() else "light")
         sv_ttk.set_theme("dark" if self.dark_mode_var.get() else "light")
         self.title("Music Analyzer")
         self.geometry("1200x660")
@@ -22,13 +24,13 @@ class MusicAnalyzer(tk.Tk):
         self.sound = sound
         self.free_play = free_play
         self.sustain = sustain
-        self.dark_mode_var = tk.BooleanVar(value=self.dark_mode_var.get())
-        self.enharmonics_var = tk.BooleanVar(value=True)
-        self.numeral_var = tk.BooleanVar(value=True)
-        self.sound_var = tk.BooleanVar(value=True)
-        self.free_play_var = tk.BooleanVar(value=False)
-        self.sustain_var = tk.BooleanVar(value=True)
-        self.persistent_key_var = tk.BooleanVar(value=False)
+        self.dark_mode_var = ctk.BooleanVar(value=self.dark_mode_var.get())
+        self.enharmonics_var = ctk.BooleanVar(value=True)
+        self.numeral_var = ctk.BooleanVar(value=True)
+        self.sound_var = ctk.BooleanVar(value=True)
+        self.free_play_var = ctk.BooleanVar(value=False)
+        self.sustain_var = ctk.BooleanVar(value=True)
+        self.persistent_key_var = ctk.BooleanVar(value=False)
         self.persistent_key = ""
         self.music_data = []
         self.create_widgets()
@@ -39,67 +41,70 @@ class MusicAnalyzer(tk.Tk):
         
     def load_preferences(self):
         with shelve.open('preferences') as db:
-            self.dark_mode_var = tk.BooleanVar(value=db.get('dark_mode', True))
+            self.dark_mode_var = ctk.BooleanVar(value=db.get('dark_mode', True))
 
     def save_preferences(self):
         with shelve.open('preferences', writeback=True) as db:
             db['dark_mode'] = self.dark_mode_var.get()
     
     def create_widgets(self):
-        self.header_frame = ttk.Frame(self)
-        self.header_frame.pack(fill=tk.X, pady=10)
+        self.header_frame = ctk.CTkFrame(self, fg_color = self._fg_color)
+        self.header_frame.pack(fill=ctk.X, pady=20, padx=10)
 
-        self.load_button = ttk.Button(self.header_frame, text="Load MusicXML File", command=self.load_file)
-        self.load_button.pack(side=tk.LEFT, padx=10)
+        self.load_button = ctk.CTkButton(self.header_frame, text="Load MusicXML File", command=self.load_file)
+        self.load_button.pack(side=ctk.LEFT, padx=10)
 
-        self.find_chord_button = ttk.Button(self.header_frame, text="Find Chord", command=self.open_chord_finder)
-        self.find_chord_button.pack(side=tk.RIGHT, padx=10)
+        self.find_chord_button = ctk.CTkButton(self.header_frame, text="Find Chord", command=self.open_chord_finder)
+        self.find_chord_button.pack(side=ctk.RIGHT, padx=10)
 
-        self.filters_frame = ttk.Frame(self)
+        self.filters_frame = ctk.CTkFrame(self, fg_color = self._fg_color)
         self.filters_frame.pack(pady=10)
 
         # part filter
-        self.part_label = ttk.Label(self.filters_frame, text="Part:")
-        self.part_label.grid(row=0, column=0, padx=5)
-        self.part_entry = ttk.Entry(self.filters_frame)
-        self.part_entry.grid(row=0, column=1, padx=5)
+        self.part_label = ctk.CTkLabel(self.filters_frame, text="Part:")
+        self.part_label.grid(row=0, column=0, padx=25)
+        self.part_entry = ctk.CTkEntry(self.filters_frame, width=200)
+        self.part_entry.grid(row=0, column=1, padx=25)
         self.part_entry.bind("<KeyRelease>", self.apply_filters)
 
         # measure filters
-        self.measure_from_label = ttk.Label(self.filters_frame, text="From measure:")
-        self.measure_from_label.grid(row=0, column=2, padx=5)
-        self.measure_from_entry = ttk.Entry(self.filters_frame)
-        self.measure_from_entry.grid(row=0, column=3, padx=5)
+        self.measure_from_label = ctk.CTkLabel(self.filters_frame, text="From measure:")
+        self.measure_from_label.grid(row=0, column=2, padx=25)
+        self.measure_from_entry = ctk.CTkEntry(self.filters_frame, width=200)
+        self.measure_from_entry.grid(row=0, column=3, padx=25)
         self.measure_from_entry.bind("<KeyRelease>", self.apply_filters)
 
-        self.measure_until_label = ttk.Label(self.filters_frame, text="Until measure:")
-        self.measure_until_label.grid(row=0, column=4, padx=5)
-        self.measure_until_entry = ttk.Entry(self.filters_frame)
-        self.measure_until_entry.grid(row=0, column=5, padx=5)
+        self.measure_until_label = ctk.CTkLabel(self.filters_frame, text="Until measure:")
+        self.measure_until_label.grid(row=0, column=4, padx=25)
+        self.measure_until_entry = ctk.CTkEntry(self.filters_frame, width=200)
+        self.measure_until_entry.grid(row=0, column=5, padx=25)
         self.measure_until_entry.bind("<KeyRelease>", self.apply_filters)
 
         # beat filters
-        self.beat_from_label = ttk.Label(self.filters_frame, text="From beat:")
-        self.beat_from_label.grid(row=1, column=2, padx=5)
-        self.beat_from_entry = ttk.Entry(self.filters_frame)
-        self.beat_from_entry.grid(row=1, column=3, padx=5)
+        self.beat_from_label = ctk.CTkLabel(self.filters_frame, text="From beat:")
+        self.beat_from_label.grid(row=1, column=2, padx=25)
+        self.beat_from_entry = ctk.CTkEntry(self.filters_frame, width=200)
+        self.beat_from_entry.grid(row=1, column=3, padx=25)
         self.beat_from_entry.bind("<KeyRelease>", self.apply_filters)
 
-        self.beat_until_label = ttk.Label(self.filters_frame, text="Until beat:")
-        self.beat_until_label.grid(row=1, column=4, padx=5)
-        self.beat_until_entry = ttk.Entry(self.filters_frame)
-        self.beat_until_entry.grid(row=1, column=5, padx=5)
+        self.beat_until_label = ctk.CTkLabel(self.filters_frame, text="Until beat:")
+        self.beat_until_label.grid(row=1, column=4, padx=25)
+        self.beat_until_entry = ctk.CTkEntry(self.filters_frame, width=200)
+        self.beat_until_entry.grid(row=1, column=5, padx=25)
         self.beat_until_entry.bind("<KeyRelease>", self.apply_filters)
 
         # chord name filter
-        self.chord_label = ttk.Label(self.filters_frame, text="Chord Name:")
-        self.chord_label.grid(row=1, column=0, padx=5)
-        self.chord_entry = ttk.Entry(self.filters_frame)
-        self.chord_entry.grid(row=1, column=1, padx=5)
+        self.chord_label = ctk.CTkLabel(self.filters_frame, text="Chord Name:")
+        self.chord_label.grid(row=1, column=0, padx=25)
+        self.chord_entry = ctk.CTkEntry(self.filters_frame, width=200)
+        self.chord_entry.grid(row=1, column=1, padx=25)
         self.chord_entry.bind("<KeyRelease>", self.apply_filters)
 
+        frame = ctk.CTkFrame(self, fg_color = self._fg_color)
+        frame.pack(padx=20, fill=ctk.BOTH, expand=True)
+
         # table
-        self.tree = ttk.Treeview(self, columns=("Part", "Measure", "Beat", "Chord Name", "Notes"), show="headings")
+        self.tree = ttk.Treeview(frame, columns=("Part", "Measure", "Beat", "Chord Name", "Notes"), show="headings")
         self.tree.configure(selectmode="extended")
         self.tree.heading("Part", text="Part")
         self.tree.heading("Measure", text="Measure")
@@ -108,61 +113,69 @@ class MusicAnalyzer(tk.Tk):
         self.tree.heading("Notes", text="Notes (low to high)")
         
         # column widths and stretch
-        self.tree.column("Part", width=200, stretch=tk.NO)
-        self.tree.column("Measure", width=80, stretch=tk.NO)
-        self.tree.column("Beat", width=80, stretch=tk.NO)
-        self.tree.column("Chord Name", width=400, stretch=tk.YES)
-        self.tree.column("Notes", width=200, stretch=tk.YES)      
-        self.tree.pack(fill=tk.BOTH, expand=True)
+        self.tree.column("Part", width=200, stretch=ctk.NO)
+        self.tree.column("Measure", width=80, stretch=ctk.NO)
+        self.tree.column("Beat", width=80, stretch=ctk.NO)
+        self.tree.column("Chord Name", width=400, stretch=ctk.YES)
+        self.tree.column("Notes", width=200, stretch=ctk.YES)      
+        self.tree.pack(fill=ctk.BOTH, expand=True)
         self.tree.tag_configure("padding", font=("Arial", 16))
         
         self.tree.bind("<Double-1>", self.on_tree_double_click)
         
         # enharmonics toggle
-        self.toggle_frame = ttk.Frame(self)
-        self.toggle_frame.pack(side=tk.LEFT, padx=10, pady=10)
-        self.toggle_button = ttk.Checkbutton(
+        self.toggle_frame = ctk.CTkFrame(self, fg_color = self._fg_color)
+        self.toggle_frame.pack(side=ctk.LEFT, padx=10, pady=10)
+        
+        self.toggle_button = ctk.CTkCheckBox(
             self.toggle_frame,
             text="Use Enharmonics Simplifier During Extraction (recommended on)",
             command=self.toggle_enharmonics,
             variable=self.enharmonics_var
         )
-        self.toggle_button.pack(side=tk.LEFT, padx=10, pady=10)
+        self.toggle_button.pack(side=ctk.LEFT, padx=10, pady=10)
         
         # darkmode toggle
-        self.toggle_frame = ttk.Frame(self)
-        self.toggle_frame.pack(side=tk.RIGHT, padx=10, pady=10)
-        self.dark_mode_toggle = ttk.Checkbutton(
+        self.toggle_frame = ctk.CTkFrame(self, fg_color = self._fg_color)
+        self.toggle_frame.pack(side=ctk.RIGHT, padx=10, pady=10)
+        
+        self.dark_mode_toggle = ctk.CTkCheckBox(
             self.toggle_frame,
             text="Dark Mode",
             command=self.toggle_dark_mode,
             variable=self.dark_mode_var
         )
-        self.dark_mode_toggle.pack(side=tk.RIGHT, padx=10, pady=10)
+        self.dark_mode_toggle.pack(side=ctk.RIGHT, padx=10, pady=10)
         
         # dropdown
         self.filter_options = ["By Instrument", "By Measure and Beat"]
-        self.filter_var = tk.StringVar(value=self.filter_options[0])
+        self.filter_var = ctk.StringVar(value=self.filter_options[0])
         
-        self.filter_dropdown = ttk.Combobox(
+        self.filter_dropdown = ctk.CTkComboBox(
             self,
-            textvariable=self.filter_var,
+            command=self.on_combobox_change,
             values=self.filter_options,
-            state="readonly"
+            variable=self.filter_var,
+            state="readonly",
+            width=175
         )
-        self.filter_dropdown.pack(side=tk.RIGHT, padx=10, pady=10)
+        self.filter_dropdown.pack(side=ctk.RIGHT, padx=10, pady=10)
         
         self.filter_dropdown.bind("<<ComboboxSelected>>", self.apply_filters)
         
-        # frame for displaying filtered content
-        self.table_frame = ttk.Frame(self)
-        self.table_frame.pack(side=tk.RIGHT, expand=True, padx=10, pady=10)
+
+    
+    def on_combobox_change(self, selected_value):
+        self.filter_var.set(selected_value)
+        self.apply_filters()
 
     def toggle_dark_mode(self):
         dark_mode_enabled = self.dark_mode_var.get()
         if dark_mode_enabled:
+            ctk.set_appearance_mode("dark")
             sv_ttk.set_theme("dark")
         else:
+            ctk.set_appearance_mode("light")
             sv_ttk.set_theme("light")
         self.save_preferences()
         
@@ -265,27 +278,19 @@ class MusicAnalyzer(tk.Tk):
     
     def open_chord_finder(self, event=None, notes=""):
         
-        self.chord_finder_window = tk.Toplevel(self)
+        self.chord_finder_window = ctk.CTkToplevel(self)
         self.chord_finder_window.title("Chord Finder")
-        self.chord_finder_window.geometry("1350x700")
+        self.chord_finder_window.geometry('1350x750')
         
-        # Calculate new window position by getting center relative to main window
-        main_window_x = self.winfo_x()
-        main_window_y = self.winfo_y()
-        main_window_width = self.winfo_width()
-        main_window_height = self.winfo_height()
-
-        new_window_width = 1350
-        new_window_height = 700
-        new_window_x = main_window_x + (main_window_width - new_window_width) // 2
-        new_window_y = main_window_y + (main_window_height - new_window_height) // 2
-        self.chord_finder_window.geometry(f"{new_window_width}x{new_window_height}+{new_window_x}+{new_window_y}")
+        # chord finder is a modal window, and minimizing it also minimizes main window
+        self.chord_finder_window.transient(self)
+        self.chord_finder_window.grab_set()
 
         # Notes input field
-        self.notes_label = ttk.Label(self.chord_finder_window, text="Enter Notes (comma-separated):")
+        self.notes_label = ctk.CTkLabel(self.chord_finder_window, text="Enter Notes (comma-separated):")
         self.notes_label.pack(pady=10)
-        self.notes_entry = ttk.Entry(self.chord_finder_window)
-        self.notes_entry.pack(pady=10, padx=20, fill=tk.X)
+        self.notes_entry = ctk.CTkEntry(self.chord_finder_window)
+        self.notes_entry.pack(pady=10, padx=20, fill=ctk.X)
         self.notes_entry.focus_set()
         
         if notes: # insert notes if exist
@@ -296,10 +301,10 @@ class MusicAnalyzer(tk.Tk):
         self.notes_entry.bind("<KeyRelease>", self.update_chord_name)
 
         # Key input field
-        self.key_label = ttk.Label(self.chord_finder_window, text="Enter a Key (e.g., C):")
+        self.key_label = ctk.CTkLabel(self.chord_finder_window, text="Enter a Key (e.g., C):")
         self.key_label.pack(pady=10)
-        self.key_entry = ttk.Entry(self.chord_finder_window)
-        self.key_entry.pack(pady=10, padx=20, fill=tk.X)
+        self.key_entry = ctk.CTkEntry(self.chord_finder_window)
+        self.key_entry.pack(pady=10, padx=20, fill=ctk.X)
         self.key_entry.bind("<KeyRelease>", self.update_chord_name)
         
         # Persist key if toggled to do so
@@ -307,83 +312,83 @@ class MusicAnalyzer(tk.Tk):
             self.key_entry.insert(0, self.persistent_key)
         
         # Key persistance toggle
-        self.persistent_key_checkbox = ttk.Checkbutton(
+        self.persistent_key_checkbox = ctk.CTkCheckBox(
             self.chord_finder_window, 
             text="Use this key for new entries", 
             command=self.persist_key,
             variable=self.persistent_key_var
         )
-        self.persistent_key_checkbox.pack(anchor='w', padx=30, pady=5, fill=tk.X)
+        self.persistent_key_checkbox.pack(anchor='w', padx=30, pady=5, fill=ctk.X)
 
         # Display chord name
-        self.chord_name_label = ttk.Label(self.chord_finder_window, text="Chord Name:", font=("Helvetica", 22))
+        self.chord_name_label = ctk.CTkLabel(self.chord_finder_window, text="Chord Name:", font=("Helvetica", 22))
         self.chord_name_label.pack(pady=10)
-        self.chord_name_display = ttk.Label(self.chord_finder_window, text="", font=("Helvetica", 18))
+        self.chord_name_display = ctk.CTkLabel(self.chord_finder_window, text="", font=("Helvetica", 18))
         self.chord_name_display.pack(pady=10)
 
         # Display chord relationship
-        self.chord_relation_label = ttk.Label(self.chord_finder_window, text="Chord Relationship:", font=("Helvetica", 22))
+        self.chord_relation_label = ctk.CTkLabel(self.chord_finder_window, text="Chord Relationship:", font=("Helvetica", 22))
         self.chord_relation_label.pack(pady=10)
-        self.chord_relation_display = ttk.Label(self.chord_finder_window, text="", font=("Helvetica", 18))
+        self.chord_relation_display = ctk.CTkLabel(self.chord_finder_window, text="", font=("Helvetica", 18))
         self.chord_relation_display.pack(pady=10)
-        self.chord_diatonic_display = ttk.Label(self.chord_finder_window, text="", font=("Helvetica", 18))
+        self.chord_diatonic_display = ctk.CTkLabel(self.chord_finder_window, text="", font=("Helvetica", 18))
         self.chord_diatonic_display.pack(pady=10)
 
         # Virtual keyboard
         self.virtual_keyboard = VirtualKeyboard(self.chord_finder_window, self.update_chord_name, self.sound, self.sustain, self.free_play)
         self.virtual_keyboard.pack(pady=20)
         
-        self.music_frame = ttk.Frame(self.chord_finder_window)
-        self.music_frame.pack(anchor='w', padx=10, pady=10)
+        self.music_frame = ctk.CTkFrame(self.chord_finder_window, fg_color = self.chord_finder_window._fg_color)
+        self.music_frame.pack(anchor='w', padx=10, pady=(25, 0))
         
         # Sound toggle
-        self.toggle_sound_button = ttk.Checkbutton(
+        self.toggle_sound_button = ctk.CTkCheckBox(
             self.music_frame, 
             text="Play Key on Click", 
             command=self.toggle_sound,
             variable=self.sound_var
         )
-        self.toggle_sound_button.pack(side=tk.LEFT, padx=30, pady=5, fill=tk.X)
+        self.toggle_sound_button.pack(side=ctk.LEFT, padx=30, pady=5, fill=ctk.X)
         
         # Sustain toggle
-        self.sustain_toggle = ttk.Checkbutton(
+        self.sustain_toggle = ctk.CTkCheckBox(
             self.music_frame, 
             text="Sustain Pedal", 
             command=self.toggle_sustain,
             variable=self.sustain_var
         )
-        self.sustain_toggle.pack(side=tk.LEFT, padx=30, pady=5, fill=tk.X)
+        self.sustain_toggle.pack(side=ctk.LEFT, padx=30, pady=5, fill=ctk.X)
         
         # Free play toggle
         # Note that this settings override what is chosen in the sound toggle
-        self.free_play_button = ttk.Checkbutton(
+        self.free_play_button = ctk.CTkCheckBox(
             self.music_frame, 
             text="Keyboard Freeplay", 
             command=self.toggle_free_play,
             variable=self.free_play_var
         )
-        self.free_play_button.pack(side=tk.LEFT, padx=30, pady=5, fill=tk.X)
+        self.free_play_button.pack(side=ctk.LEFT, padx=30, pady=5, fill=ctk.X)
         
-        self.analysis_frame = ttk.Frame(self.chord_finder_window)
+        self.analysis_frame = ctk.CTkFrame(self.chord_finder_window, fg_color = self.chord_finder_window._fg_color)
         self.analysis_frame.pack(anchor='w', padx=10, pady=10)
         
         # Numeral toggle
-        self.toggle_numeral_button = ttk.Checkbutton(
+        self.toggle_numeral_button = ctk.CTkCheckBox(
             self.analysis_frame, 
             text="Simplify Chord Symbols (recommended on)", 
             command=self.toggle_numeral,
             variable=self.numeral_var
         )
-        self.toggle_numeral_button.pack(side=tk.LEFT, padx=30, pady=5, fill=tk.X)
+        self.toggle_numeral_button.pack(side=ctk.LEFT, padx=30, pady=5, fill=ctk.X)
         
         # Enharmonics toggle
-        self.toggle_enharmonics_button = ttk.Checkbutton(
+        self.toggle_enharmonics_button = ctk.CTkCheckBox(
             self.analysis_frame, 
             text="Enharmonics Simplifier (recommended on)", 
             command=self.toggle_enharmonics,
             variable=self.enharmonics_var
         )
-        self.toggle_enharmonics_button.pack(side=tk.LEFT, padx=30, pady=5, fill=tk.X)
+        self.toggle_enharmonics_button.pack(side=ctk.LEFT, padx=30, pady=5, fill=ctk.X)
         
         self.chord_finder_window.protocol("WM_DELETE_WINDOW", self.on_chord_finder_close)
     
@@ -461,7 +466,7 @@ class MusicAnalyzer(tk.Tk):
         
         chord_name, chord_relation = get_chord_name(note_set, key_input, self.simplify_numeral, self.simplify_chords)
         
-        self.chord_name_display.config(text=chord_name)
+        self.chord_name_display.configure(text=chord_name)
         if chord_relation:
             # split the chord_relation text into relationship and diatonic parts
             parts = chord_relation.split('\n', 1)
@@ -474,8 +479,8 @@ class MusicAnalyzer(tk.Tk):
             relationship = "No valid key and/or chord provided"
             diatonic = ""
         
-        self.chord_relation_display.config(text=relationship)
-        self.chord_diatonic_display.config(text=diatonic)
+        self.chord_relation_display.configure(text=relationship)
+        self.chord_diatonic_display.configure(text=diatonic)
         
         # reset key colors before highlighting new ones
         self.virtual_keyboard.reset_all_keys()       

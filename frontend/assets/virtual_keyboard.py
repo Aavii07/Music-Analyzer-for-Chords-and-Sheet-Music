@@ -1,16 +1,17 @@
-import tkinter as tk
+import customtkinter as ctk
 import pygame
+import re
 
-class VirtualKeyboard(tk.Frame):
+class VirtualKeyboard(ctk.CTkFrame):
     def __init__(self, parent, update_chord_callback, sound, sustain, free_play, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
-        self.canvas = tk.Canvas(self, bg='white', height=98, width=1298)
-        self.canvas.pack(fill=tk.BOTH, expand=True)
+        self.canvas = ctk.CTkCanvas(self, bg='white', height=97, width=1297)
+        self.canvas.pack(fill=ctk.BOTH, expand=True)
         self.convert_enharmonics = False
         self.note_to_key_mapping = self.create_note_to_key_mapping()
         self.key_click_state = {} 
         self.last_clicked_note = None
-        self.update_chord_callback = update_chord_callback # use to avoid circular dependency
+        self.update_chord_callback = update_chord_callback
         self.sound = sound
         self.sustain = sustain
         self.free_play = free_play
@@ -74,7 +75,7 @@ class VirtualKeyboard(tk.Frame):
             key_id = self.canvas.create_rectangle(
                 x, 0, x + white_key_width, white_key_height, 
                 fill='white', 
-                outline = 'grey',
+                outline = 'black',
                 width = border_width)
             
             self.keys[f'Wh{i + 1}'] = key_id
@@ -175,13 +176,13 @@ class VirtualKeyboard(tk.Frame):
             key_id = self.keys.get(key)
             if key_id:
                 if highlight:
-                    color = 'yellow'
+                    color = 'orange'
                 self.canvas.itemconfig(key_id, fill=color)
     
     
     def reset_all_keys(self):
         for key_id in self.keys.values():
-            if self.canvas.itemcget(key_id, 'fill') == 'yellow':
+            if self.canvas.itemcget(key_id, 'fill') == 'orange':
                 if 'black' in self.canvas.gettags(key_id):
                     self.canvas.itemconfig(key_id, fill='black')
                 else:
@@ -204,7 +205,7 @@ class VirtualKeyboard(tk.Frame):
                     self.play_note_sound(note)
                 else:
                     key_color = self.canvas.itemcget(key_id, 'fill')
-                    if self.sound and key_color != 'yellow':
+                    if self.sound and key_color != 'orange':
                         self.play_note_sound(note)
                     
                     self.update_chord_callback(keyboard_triggered=True)
