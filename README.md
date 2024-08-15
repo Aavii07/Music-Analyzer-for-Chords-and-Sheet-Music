@@ -47,9 +47,9 @@ There are a couple of key limitations it is important to be aware of should you 
 
 
 The music analyzer also has a few key limitations when it comes to extracting chords, mainly that the chord has to be 2+ notes played on the same beat and measure in the same staff<br><br>
- - it cannot extract arpeggiated chords (since they are not played of the same beat).<br><br>
- - if a chord as a one note root bass in the treble clef following by the upper extensions in the treble clef, you wont get that one note root in the chord and have to add it in manually after opening the treble clef's chord up in the chord finder.<br><br>
- - many times orchestral scores will divide their chords into groups of one note, divided among different instruments of the string section for example. You cannot just sort 'By Measure and Beat' and shift-click all the chords in this string section as the singular notes will not be extracted.<br><br>
+ - It cannot extract arpeggiated chords (since they are not played of the same beat).<br><br>
+ - If a chord as a one note root bass in the treble clef followed by the upper extensions in the treble clef, you wont get that one note root in the chord and have to add it in manually after opening the treble clef's chord up in the chord finder.<br><br>
+ - Many times orchestral scores will divide their chords into singular notes, divided among different instruments of the string section for example. You cannot just sort 'By Measure and Beat' and shift-click all the chords in this string section as the singular notes will not be extracted.<br><br>
  - Make sure each part has a unique name. If you have 2 pianos and they are both called 'Piano' (instead of 'Piano 1' and 'Piano 2'), the chord finder will get confused when automatically dividing up the bass and treble clefs. This ideally should not happen as naming duplicate instruments the exact same is really bad practice, but just be aware of this.<br><br>
 
 Even with these limitations, in practice the chord finder tends to be very helpful with most scores as it extract a good majority of the chords for you instead of forcing you to input each note manually. What it won't do, however, is automatically give you the entire chord progression and do all the work of reading sheet music for you.<br><br>
