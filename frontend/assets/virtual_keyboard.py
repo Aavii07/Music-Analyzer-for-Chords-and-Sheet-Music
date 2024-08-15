@@ -1,6 +1,6 @@
 import customtkinter as ctk
 import pygame
-import re
+import sys, os
 
 class VirtualKeyboard(ctk.CTkFrame):
     def __init__(self, parent, update_chord_callback, sound, sustain, free_play, *args, **kwargs):
@@ -23,11 +23,18 @@ class VirtualKeyboard(ctk.CTkFrame):
     
     def load_note_sounds(self):
         note_sounds = {}
+
+        if hasattr(sys, '_MEIPASS'):
+            base_path = os.path.join(sys._MEIPASS, 'sounds')
+        else:
+            base_path = 'sounds'
+
         for note in self.note_to_key_mapping.keys():
             try:
-                note_sounds[note] = pygame.mixer.Sound(f'sounds/{note}.wav')
+                sound_file_path = os.path.join(base_path, f'{note}.wav')
+                note_sounds[note] = pygame.mixer.Sound(sound_file_path)
             except pygame.error:
-                print(f"Sound file for {note} not found.")
+                print(f"Sound file for {note} not found: {sound_file_path}")
         return note_sounds
 
     def play_note_sound(self, note):
