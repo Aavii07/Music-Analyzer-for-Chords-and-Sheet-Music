@@ -16,6 +16,8 @@ Notes:<br>
 
 - You can press command/control + z at any time to clear all notes off piano.<br>
 
+- Notes can be entered in a variety of ways (C##5, c#5#, etc). If you do not enter a number next to the note, it defaults to the fourth octave.<br>
+
 - The enharmonic simplifer is recommended on because it can be annoying to have the program say you wrote the enharmonic equivalent to C# major just beacuse you used 'f' instead of 'e#'. The enharmonic simplifer does not catch and simplify everything though. It also can sometimes catches mistakes in chord analysis (for more information about accuracy, go to the **Important Limitations** section. <br>
 
 - The chord symbols simplfier is recommended on because while unsimplified numerals tell you more about the chord, this is what they can look like:<br>
