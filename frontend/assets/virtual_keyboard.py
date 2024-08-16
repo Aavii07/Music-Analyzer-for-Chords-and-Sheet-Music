@@ -3,7 +3,7 @@ import pygame
 import sys, os
 
 class VirtualKeyboard(ctk.CTkFrame):
-    def __init__(self, parent, update_chord_callback, sound, sustain, free_play, *args, **kwargs):
+    def __init__(self, parent, update_chord_callback, sound, sustain, free_play, color, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         self.canvas = ctk.CTkCanvas(self, bg='white', height=97, width=1297)
         self.canvas.pack(fill=ctk.BOTH, expand=True)
@@ -15,6 +15,7 @@ class VirtualKeyboard(ctk.CTkFrame):
         self.sound = sound
         self.sustain = sustain
         self.free_play = free_play
+        self.color = color
         self.create_keys()
         pygame.mixer.init()
         self.current_sounds = []
@@ -183,13 +184,13 @@ class VirtualKeyboard(ctk.CTkFrame):
             key_id = self.keys.get(key)
             if key_id:
                 if highlight:
-                    color = 'orange'
+                    color = self.color
                 self.canvas.itemconfig(key_id, fill=color)
     
     
     def reset_all_keys(self):
         for key_id in self.keys.values():
-            if self.canvas.itemcget(key_id, 'fill') == 'orange':
+            if self.canvas.itemcget(key_id, 'fill') == self.color:
                 if 'black' in self.canvas.gettags(key_id):
                     self.canvas.itemconfig(key_id, fill='black')
                 else:
@@ -212,7 +213,7 @@ class VirtualKeyboard(ctk.CTkFrame):
                     self.play_note_sound(note)
                 else:
                     key_color = self.canvas.itemcget(key_id, 'fill')
-                    if self.sound and key_color != 'orange':
+                    if self.sound and key_color != self.color:
                         self.play_note_sound(note)
                     
                     self.update_chord_callback(keyboard_triggered=True)
@@ -231,5 +232,7 @@ class VirtualKeyboard(ctk.CTkFrame):
     def toggle_free_play(self, free_play):
         self.free_play = free_play
     
+    def setColor(self, color):
+        self.color = color
 
             

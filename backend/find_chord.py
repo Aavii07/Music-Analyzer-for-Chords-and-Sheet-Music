@@ -85,8 +85,8 @@ def get_chord_relationship(chord_obj, key_name, simplify_numeral):
         key_type = "minor" if key_obj.mode == "minor" else "major"
         
         if isDiatonic:
-            return f"This chord is the {roman_numeral} chord in the key of {key_name_uppercase}.\nThis chord is diatonic to the key of {key_name_uppercase} {key_type}"
+            return f"This chord is the {roman_numeral} chord in the key of {key_name_uppercase}\nThis chord is diatonic to the key of {key_name_uppercase} {key_type}"
         else:
-            return f"This chord is the {roman_numeral} chord in the key of {key_name_uppercase}.\nThis chord is not diatonic to the key of {key_name_uppercase} {key_type}"
+            return f"This chord is the {roman_numeral} chord in the key of {key_name_uppercase}\nThis chord is not diatonic to the key of {key_name_uppercase} {key_type}"
     except Exception as e:
         return f"Error calculating chord relationship: {e}"

@@ -11,17 +11,24 @@ import customtkinter as ctk
 class MusicAnalyzer(ctk.CTk):
     def __init__(self, simplify_chords=True, simplify_numeral=True, sound=True, sustain=True, free_play=False):
         super().__init__()
+        
+        # load pref
         self.load_preferences()
         
+        # appearance and window setup
         ctk.set_appearance_mode("dark" if self.dark_mode_var.get() else "light")
         self.title("Music Analyzer")
         self.geometry(f'1200x660+100+50')
+        
+        # instance variables
         self.chord_finder_window = None
         self.simplify_chords = simplify_chords
         self.simplify_numeral = simplify_numeral
         self.sound = sound
         self.free_play = free_play
         self.sustain = sustain
+        
+        # BoolVar instances
         self.dark_mode_var = ctk.BooleanVar(value=self.dark_mode_var.get())
         self.enharmonics_var = ctk.BooleanVar(value=True)
         self.numeral_var = ctk.BooleanVar(value=True)
@@ -31,7 +38,11 @@ class MusicAnalyzer(ctk.CTk):
         self.persistent_key_var = ctk.BooleanVar(value=False)
         self.persistent_key = ""
         self.music_data = []
+        
+        # widgets
         self.create_widgets()
+        
+        # bind shortcuts
         self.bind('<Command-n>', self.open_chord_finder)
         self.bind('<Control-n>', self.open_chord_finder)
         self.bind_all('<Command-z>', self.clear_notes)
@@ -39,11 +50,15 @@ class MusicAnalyzer(ctk.CTk):
         
     def load_preferences(self):
         with shelve.open('preferences') as db:
-            self.dark_mode_var = ctk.BooleanVar(value=db.get('dark_mode', False))
+            self.dark_mode_var = ctk.BooleanVar(value = db.get('dark_mode', False))
+            self.color = db.get('color', 'Orange')
+            self.color_number = db.get('color_number', 0)
 
     def save_preferences(self):
         with shelve.open('preferences', writeback=True) as db:
             db['dark_mode'] = self.dark_mode_var.get()
+            db['color'] = self.color
+            db['color_number'] = self.color_number
     
     def create_widgets(self):
         self.header_frame = ctk.CTkFrame(self, fg_color = self._fg_color)
@@ -331,15 +346,15 @@ class MusicAnalyzer(ctk.CTk):
         self.chord_diatonic_display.pack(pady=10)
 
         # Virtual keyboard
-        self.virtual_keyboard = VirtualKeyboard(self.chord_finder_window, self.update_chord_name, self.sound, self.sustain, self.free_play)
+        self.virtual_keyboard = VirtualKeyboard(self.chord_finder_window, self.update_chord_name, self.sound, self.sustain, self.free_play, self.color)
         self.virtual_keyboard.pack(pady=20)
         
-        self.music_frame = ctk.CTkFrame(self.chord_finder_window, fg_color = self.chord_finder_window._fg_color)
-        self.music_frame.pack(anchor='w', padx=10, pady=(25, 0))
+        self.row1 = ctk.CTkFrame(self.chord_finder_window, fg_color = self.chord_finder_window._fg_color)
+        self.row1.pack(anchor='w', padx=10, pady=(25, 0))
         
         # Sound toggle
         self.toggle_sound_button = ctk.CTkCheckBox(
-            self.music_frame, 
+            self.row1, 
             text="Play Key on Click", 
             command=self.toggle_sound,
             variable=self.sound_var
@@ -348,7 +363,7 @@ class MusicAnalyzer(ctk.CTk):
         
         # Sustain toggle
         self.sustain_toggle = ctk.CTkCheckBox(
-            self.music_frame, 
+            self.row1, 
             text="Sustain Pedal", 
             command=self.toggle_sustain,
             variable=self.sustain_var
@@ -358,19 +373,19 @@ class MusicAnalyzer(ctk.CTk):
         # Free play toggle
         # Note that this settings override what is chosen in the sound toggle
         self.free_play_button = ctk.CTkCheckBox(
-            self.music_frame, 
+            self.row1, 
             text="Keyboard Freeplay", 
             command=self.toggle_free_play,
             variable=self.free_play_var
         )
         self.free_play_button.pack(side=ctk.LEFT, padx=30, pady=5, fill=ctk.X)
         
-        self.analysis_frame = ctk.CTkFrame(self.chord_finder_window, fg_color = self.chord_finder_window._fg_color)
-        self.analysis_frame.pack(anchor='w', padx=10, pady=10)
+        self.row2 = ctk.CTkFrame(self.chord_finder_window, fg_color = self.chord_finder_window._fg_color)
+        self.row2.pack(anchor='w', padx=10, pady=10, fill=ctk.X)
         
         # Numeral toggle
         self.toggle_numeral_button = ctk.CTkCheckBox(
-            self.analysis_frame, 
+            self.row2, 
             text="Simplify Chord Symbols (recommended on)", 
             command=self.toggle_numeral,
             variable=self.numeral_var
@@ -379,14 +394,36 @@ class MusicAnalyzer(ctk.CTk):
         
         # Enharmonics toggle
         self.toggle_enharmonics_button = ctk.CTkCheckBox(
-            self.analysis_frame, 
+            self.row2, 
             text="Enharmonics Simplifier (recommended on)", 
             command=self.toggle_enharmonics,
             variable=self.enharmonics_var
         )
-        self.toggle_enharmonics_button.pack(side=ctk.LEFT, padx=30, pady=5, fill=ctk.X)
+        self.toggle_enharmonics_button.pack(side=ctk.LEFT, pady=5, fill=ctk.X)
+        
+        # Color dropdown
+        self.color_options = ["Orange", "Yellow", "Gold", "Red", "Pink", "Purple", "Magenta", "Blue", "Light Blue", "Teal", "Green", "Light Green", "Olive", "Brown", "Gray", "Silver"]
+        self.color_var = ctk.StringVar(value=self.color_options[self.color_number])
+        
+        self.color_dropdown = ctk.CTkComboBox(
+            self.row2,
+            values=self.color_options,
+            variable=self.color_var,
+            command=self.change_color,
+            state="readonly",
+            width=150
+        )
+        self.color_dropdown.pack(side=ctk.RIGHT, padx=10, pady=10)
         
         self.chord_finder_window.protocol("WM_DELETE_WINDOW", self.on_chord_finder_close)
+    
+    def change_color(self, event):
+        self.color = self.color_var.get()
+        self.color_number = self.color_options.index(self.color)
+        self.virtual_keyboard.setColor(self.color)
+        self.save_preferences()
+        self.update_chord_name()
+        
     
     def on_chord_finder_close(self):
         self.persist_key() # persist key right before closing
