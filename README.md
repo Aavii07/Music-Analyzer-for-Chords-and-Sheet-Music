@@ -76,9 +76,11 @@ Even with these limitations, in practice the chord finder tends to be very helpf
 Go to the downloads page below to download the version for your specific operating system: <br>
 https://github.com/Aavii07/Chords-Analyzer-and-Extractor-Tool/releases/tag/v1.0
 
-Note that for MacOS, you need to right click on the extracted file and click 'Show Package Contents.' From there you navigate to Contents/MacOS and run the only file in that directory. It should open a terminal which runs the application shortly later (it may look like nothing is happening but it's loading in the background). So far, this is the only way I got it to work
+Note that for MacOS, you need to right click on the extracted file and click 'Show Package Contents.' From there you navigate to Contents/MacOS and run the only file in that directory. It should open a terminal which runs the application shortly later. So far, this is the only way I got it to work<br>
 
-You can also easily setup and run the project locally by running the following commands assuming you have Python installed:
+Also be aware that it does take a while (~20 to 40 seconds) for the application to boot up, and during that time it may look like the terminal froze or the application did not run (when it's loading in the background).<br><br> 
+
+You can also easily setup the project and be able to instantly run it locally by running the following commands assuming you have Python installed:
 
 # For local setup<br>
 *Note: if you only have Python3 installed use pip3 and python3 instead*<br><br>
