@@ -5,8 +5,11 @@ This program is a useful tool developed for analyzing any chord you find. You ca
 This application started as a simple tool for personal music analysis. As it developed, I realized it might make sense to polish and publicize it, as I feel like someone else may find this useful in some way. The way it works is by using the Custom Tkinter GUI to interface with the music21 Python library, a library commonly used in musicology and computational music analysis. Below are important notes on how to use both the Chord Finder and Chord Extractor.
 
 # Chord Finder
-<img width="1000" alt="Chord Finder Light Mode" src="https://github.com/user-attachments/assets/b22496c1-31cc-4357-bd51-f32267cb6a04">
-<img width="1000" alt="Chord Finder Dark Mode" src="https://github.com/user-attachments/assets/24ea0f30-36ac-463b-afd2-04a7fa26ca69">
+<img width="1000" alt="Chord Finder Light Mode" src="https://github.com/user-attachments/assets/0d9bf04e-6943-4c67-bb21-b970c471fe5a">
+<img width="1000" alt="Chord Finder Dark Mode" src="https://github.com/user-attachments/assets/ad110e81-69cc-451b-8362-ad8e0888e5fd">
+
+
+
 <br><br>
 Notes:<br>
 
