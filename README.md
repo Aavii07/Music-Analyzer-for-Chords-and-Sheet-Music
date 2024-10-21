@@ -53,13 +53,13 @@ Notes:<br><br>
 <br>
 There are a couple of key limitations with the music21 library that are important to be aware of should you use this tool.<br><br>
 
-- Firstly, not every chord interpretation in the Chord Finder will be correct. Here is a paper that analyzes and delves into the accuracy of the Python library called music21 running in the backend if you are interested: https://dmitri.mycpanel.princeton.edu/music21.pdf<br>
+- Firstly, not every chord interpretation in the Chord Finder will be correct. This paper talks about the accuracy of the Python library called music21 running in the backend within the first few paragraphs, as well as going into much more depth about how its inner workings if you are interested. It is quite fascinating and I highly recommend it: https://dmitri.mycpanel.princeton.edu/music21.pdf<br>
 
 - From my experience, music21 tends to almost always be correct always for 3 or 4 unique note chords, and if you get a strange looking result or chord name then toggling the enharmonic simplifier on/off seems to do the trick.<br>
 
 - When you get to 5 or 6 unique note chords, the errors may be slightly more frequent. One interesting quirk about many of these errors is that the chord name tends to be correct quite frequently, but you are told an inaccurate chord root. <br>
 
-- Once you go to 7+ unique chords many of the chord names themselves become extremely technical, enough so that the average musician would have no idea what it means. These chords should probably be broken up into smaller triads or seventh chords if you are analyzing chords like this. I cannot speak for the accuracy of these chords.<br>
+- Once you go to 7+ unique notes many of the chord names themselves become extremely technical, enough so that the average musician would have no idea what it means. These chords should probably be broken up into smaller triads or seventh chords if you are analyzing chords like this. I cannot speak for the accuracy of these chords.<br>
 
 - Also be wary of chords that have the name of a mode (like lydian or phrygian), as these chords were frequently incorrect in my experience. These chord names tend to only appear if you input strange cluster chords. <br><br>
 
