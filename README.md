@@ -53,7 +53,7 @@ Notes:<br><br>
 <br>
 There are a couple of key limitations with the music21 library that are important to be aware of should you use this tool.<br><br>
 
-- Firstly, not every chord interpretation in the Chord Finder will be correct. This paper talks about the accuracy of the Python library called music21 running in the backend within the first few paragraphs, as well as going into much more depth about how its inner workings if you are interested. It is quite fascinating and I highly recommend it: https://dmitri.mycpanel.princeton.edu/music21.pdf<br>
+- Firstly, not every chord interpretation in the Chord Finder will be correct. This paper talks about the accuracy of the Python library called music21 running in the backend within the first few paragraphs, as well as going into much more depth about its inner workings, benefits, and drawbacks if you are interested. It is quite fascinating and I highly recommend it: https://dmitri.mycpanel.princeton.edu/music21.pdf<br>
 
 - From my experience, music21 tends to almost always be correct always for 3 or 4 unique note chords, and if you get a strange looking result or chord name then toggling the enharmonic simplifier on/off seems to do the trick.<br>
 
